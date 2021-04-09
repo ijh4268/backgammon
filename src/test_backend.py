@@ -8,8 +8,12 @@ for line in sys.stdin:
   try: 
     line_data = json.loads(line)
   except json.JSONDecodeError:
-    exit(0)
+    pass
   data.append(json.loads(line))
+
+for item in data:
+  if item.key != "content" or type(item.value) is not int:
+    del item
 
 result = sort(data)
 
