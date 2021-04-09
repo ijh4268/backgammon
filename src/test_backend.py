@@ -3,7 +3,9 @@ import sys
 from sort_backend import sort
 
 data = []
-data.append(json.load(sys.stdin))
+
+for line in sys.stdin:
+  data.append(line)
 
 result = sort(data)
 
