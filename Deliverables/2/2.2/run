@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# This is the file "run": it runs the actual submission
+
+python sort_frontend.py
