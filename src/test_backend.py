@@ -10,4 +10,4 @@ for line in sys.stdin:
 result = sort(data)
 
 sys.stdout.flush()
-sys.stdout.write(json.dump(result))
+sys.stdout.write(json.dumps(result))
