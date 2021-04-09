@@ -11,9 +11,10 @@ for line in sys.stdin:
     pass
   data.append(json.loads(line))
 
-for item in data:
-  if item.key != "content" or type(item.value) is not int:
-    del item
+for dict in data:
+  k, v = dict.items()
+  if k != "content" or type(v) is not int or v not in range(1, 25):
+    del dict
 
 result = sort(data)
 
