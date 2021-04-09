@@ -24,13 +24,13 @@ Function to validate incoming JSON data
 """
 def validate(data):
     try:
-        json.loads(data)
+        json.load(data)
     except json.JSONDecodeError:
         return False
     return True
 
 # Add JSON data to a list of all data
-if validate(sys.stdin): data.append(json.loads(sys.stdin))
+if validate(sys.stdin): data.append(json.load(sys.stdin))
 
 # Filter out any unwanted data
 filtered = filter(lambda x: "content" in x, data)
