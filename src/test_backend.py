@@ -5,7 +5,7 @@ from sort_backend import sort
 data = []
 
 for line in sys.stdin:
-  data.append(line)
+  data.append(json.loads(line))
 
 result = sort(data)
 
