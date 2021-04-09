@@ -2,4 +2,5 @@
 
 # This is the file "run": it runs the actual submission
 
+cd ../../../src
 python test_backend.py

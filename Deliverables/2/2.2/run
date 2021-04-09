@@ -2,4 +2,5 @@
 
 # This is the file "run": it runs the actual submission
 
+cd ../../../src
 python sort_frontend.py
