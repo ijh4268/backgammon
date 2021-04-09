@@ -3,18 +3,11 @@ import sys
 from sort_backend import sort
 
 data = []
+decoder = json.JSONDecoder()
 
-for line in sys.stdin:
-  try: 
-    line_data = json.loads(line)
-  except json.JSONDecodeError:
-    pass
-  data.append(json.loads(line))
-
-for dict in data:
-  k, v = dict.items()
-  if k != "content" or type(v) is not int or v not in range(1, 25):
-    del dict
+for _ in range(0, 10):
+  line = decoder.raw_decode(sys.stdin.readline())[0]
+  data.append(line)
 
 result = sort(data)
 
