@@ -35,7 +35,9 @@ for item in decode_stacked(s):
 only_dicts = list(filter(lambda x: type(x) == dict, data))
 
 # Filter out any unwanted data
-filtered = list(filter(lambda x: len(x)==1 and "content" in x and x['content'] in valid_nums, only_dicts))
+filtered = list(filter(lambda x: len(x)==1 and "content" in x \
+                        and type(x['content']) == int \
+                        and x['content'] in valid_nums, only_dicts))
 
 # separate data into chuncks of 10
 chunks = list(chunkify(filtered, n))
