@@ -4,6 +4,7 @@ import re
 from sort_backend import sort
 
 data = []
+count = 0
 
 NOT_WHITESPACE = re.compile(r'[^\s]')
 
@@ -24,7 +25,10 @@ def decode_stacked(document, pos=0, decoder=json.JSONDecoder()):
 s = sys.stdin.read().strip('[]\n')
 
 for item in decode_stacked(s):
+  if count == 10:
+    break
   data.append(item)
+  count += 1
 
 result = sort(data)
 
