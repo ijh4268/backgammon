@@ -44,7 +44,7 @@ chunks = list(chunkify(filtered, n))
 
 sorted = []
 for chunk in chunks:
-    if len(chunk) == 10: sorted.append(sort(chunk))
+    if len(chunk) == n: sorted.append(sort(chunk))
 
 sorted_json = json.dumps(sorted)
 
