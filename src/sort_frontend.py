@@ -5,7 +5,8 @@ from sort_backend import sort
 
 data = []
 n = 10 
-valid_nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+valid_nums = range(1, 25)
+special_feature = 'content'
 
 NOT_WHITESPACE = re.compile(r'[^\s]')
 
@@ -27,24 +28,27 @@ def chunkify(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
-s = sys.stdin.read()
-# Add JSON data to a list of all data
-for item in decode_stacked(s):
-    data.append(item)
+def parse_json():
+    s = sys.stdin.read()
+    # Add JSON data to a list of all data
+    for item in decode_stacked(s):
+        data.append(item)
+    only_dicts = list(filter(lambda x: type(x) == dict, data))
+    return only_dicts
 
-only_dicts = list(filter(lambda x: type(x) == dict, data))
+only_dicts = parse_json()
 
 # Filter out any unwanted data
-filtered = list(filter(lambda x: len(x)==1 and "content" in x \
-                        and type(x['content']) == int \
-                        and x['content'] in valid_nums, only_dicts))
+filtered = list(filter(lambda x: len(x)==1 and special_feature in x \
+                        and type(x[special_feature]) == int \
+                        and x[special_feature] in valid_nums, only_dicts))
 
 # separate data into chuncks of 10
 chunks = list(chunkify(filtered, n))
 
 sorted = []
 for chunk in chunks:
-    if len(chunk) == n: sorted.append(sort(chunk))
+    if len(chunk) == n: sorted.append(sort(chunk, special_feature))
 
 sorted_json = json.dumps(sorted)
 
