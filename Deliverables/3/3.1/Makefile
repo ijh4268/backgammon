@@ -4,5 +4,5 @@ install-python:
 	echo "installing pip3..."
 	-sudo apt-get install python3-pip
 	echo "installing Python dependencies..."
-	-sudo pip install -r ../requirements.txt
+	-sudo pip install -r requirements.txt
 	echo "run python code"
