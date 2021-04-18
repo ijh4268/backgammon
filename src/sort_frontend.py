@@ -52,5 +52,5 @@ for chunk in chunks:
 
 sorted_json = json.dumps(sorted)
 
-sys.stdout.flush()
-sys.stdout.write(sorted_json)
+# sys.stdout.flush()
+# sys.stdout.write(sorted_json)

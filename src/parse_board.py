@@ -69,4 +69,3 @@ def create_moves(moves):
   return moves
   
 parse_board(data)
-
