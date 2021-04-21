@@ -1,8 +1,10 @@
 from contracts import contract, new_contract
 from constants import *
-from sort_backend import sort
+from sort import sort
+from random import randint
 import json
 
+#---------------------------- Contracts ----------------------------
 @new_contract
 def Color(color):
   return color == BLACK or color == WHITE
@@ -11,7 +13,7 @@ def Color(color):
 def CPos(value):
   return value in range(1, 25) or value == HOME or value == BAR
 
-
+#------------------------ Backgammon Classes -----------------------
 class Query(object):
   @contract(color='Color', cpos='CPos')
   def __init__(self, color, cpos):
@@ -33,9 +35,14 @@ class Move(object):
 
 class Board(object):
   @contract (black_posns='list[15](int|str)', white_posns='list[15](int|str)')
-  def __init__(self, black_posns, white_posns):
-    self.black_posns = black_posns
-    self.white_posns = white_posns
+  def __init__(self, black_posns=None, white_posns=None):
+    if black_posns and white_posns:
+      self.black_posns = black_posns
+      self.white_posns = white_posns
+    else:
+      self.black_posns = BLACK_INIT
+      self.white_posns = WHITE_INIT
+      
     self.special_feature = 'board'
     self.board_contract = new_contract('board', 'list[15](int|str)')
 
@@ -64,5 +71,11 @@ class Board(object):
     if query.color == WHITE:
       return self.white_posns.count(query.cpos)
 
+class Dice(object):
+  def __init__(self):
+    self.value = randint(1, 6)
+  
+  def roll(self):
+    self.value = randint(1, 6)
 
 

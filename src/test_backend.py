@@ -1,7 +1,7 @@
 import json
 import sys
 import re
-from sort_backend import sort
+from sort import sort
 
 data = []
 count = 0

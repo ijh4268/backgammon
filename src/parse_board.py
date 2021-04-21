@@ -1,6 +1,6 @@
 import backgammon as bg
 from constants import *
-from sort_frontend import parse_json
+from parse_json import parse_json
 from contracts import contract
 import sys
 
