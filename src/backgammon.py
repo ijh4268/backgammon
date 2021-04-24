@@ -13,6 +13,14 @@ def Color(color):
 def CPos(value):
   return value in range(1, 25) or value == HOME or value == BAR
 
+@new_contract
+def ValidateBoard(board):
+  pass
+
+@new_contract
+def ValidateTurn(turn):
+  pass
+
 #------------------------ Backgammon Classes -----------------------
 class Query(object):
   @contract(color='Color', cpos='CPos')
@@ -52,17 +60,7 @@ class Board(object):
   @contract(moves='list($Move)')
   def make_moves(self, moves):
     for move in moves:
-      if move.color == BLACK:
-        self.black_posns.remove(move.source_cpos)
-        self.black_posns.append(move.dest_cpos)
-      if move.color == WHITE:
-        self.white_posns.remove(move.source_cpos)
-        self.white_posns.append(move.dest_cpos)
-    self.black_posns = sort(self.black_posns, self.special_feature)
-    self.white_posns = sort(self.white_posns, self.special_feature)
-    # verify contract is still upheld
-    self.board_contract.check(self.black_posns)
-    self.board_contract.check(self.white_posns)
+      self.make_move(move)
 
   @contract(query='$Query')
   def query(self, query):
@@ -71,11 +69,44 @@ class Board(object):
     if query.color == WHITE:
       return self.white_posns.count(query.cpos)
 
-class Dice(object):
-  def __init__(self):
-    self.value = randint(1, 6)
+  @contract(color='Color', cpos='CPos')
+  def bop(self, color, cpos):
+    if color == BLACK:
+      self.black_posns.remove(cpos)
+      self.black_posns.append(BAR)
+    if color == WHITE:
+      self.black_posns.remove(cpos)
+      self.black_posns.append(BAR)
+    self._sort_board()
+
+  def _sort_board(self):
+    self.black_posns = sort(self.black_posns, self.special_feature)
+    self.white_posns = sort(self.white_posns, self.special_feature)
+
+  @contract(move='$Move')
+  def make_move(self, move):
+    if move.color == BLACK:
+      self.black_posns.remove(move.source_cpos)
+      self.black_posns.append(move.dest_cpos)
+    if move.color == WHITE:
+      self.white_posns.remove(move.source_cpos)
+      self.white_posns.append(move.dest_cpos)
+
+    self._sort_board()
+
+    # verify contract is still upheld
+    self.board_contract.check(self.black_posns)
+    self.board_contract.check(self.white_posns)
+    
+    
+# class Dice(object):
+#   def __init__(self):
+#     self.values = [randint(1,6), randint(1,6)]
+#     if self.values[0] == self.values[1]:
+#         self.values.append(self.values[0])
+#         self.values.append(self.values[0])
+    
   
-  def roll(self):
-    self.value = randint(1, 6)
+  
 
 
