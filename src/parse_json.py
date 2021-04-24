@@ -33,7 +33,7 @@ def parse_json():
     # Add JSON data to a list of all data
     for item in decode_stacked(s):
         data.append(item)
-    only_dicts = list(filter(lambda x: type(x) == dict, data))
+    only_dicts = list(filter(lambda x: type(x) == dict or type(x) == list, data))
     return only_dicts
 
 # only_dicts = parse_json()
