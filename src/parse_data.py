@@ -3,7 +3,6 @@ from constants import *
 from parse_json import parse_json
 from bg_contracts import *
 from contracts import contract
-from backgammon import Move
 import sys
 
 data = parse_json()[0]
@@ -82,11 +81,11 @@ def get_color(data):
 def get_dice(data):
   return data[2]
 
-@contract(data='list', returns='list[N](list[2](int|str)), N>=2')
+@contract(data='list', returns='list[N](list[2](int|str)), N>=1')
 def get_turn(data):
   return data[3]
 
-@contract(moves='list(list(str|int))', returns='list($Move)')
+@contract(moves='list(list(str|int))')
 def create_moves(moves):
   for i, move in enumerate(moves):
     moves[i] = bg.Move(move[0], move[1], move[2])

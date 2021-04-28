@@ -1,5 +1,7 @@
-from contracts import contract, new_contract
+from contracts import contract
+from bg_contracts import *
 from constants import *
+from parse_data import get_moves_from_turn, create_moves
 from sort import sort
 from random import randint
 import json
@@ -54,14 +56,17 @@ class Board(object):
   def _get_query(self, color, cpos):
     return Query(color, cpos)
 
+  @contract(color='Color')
+  def _get_posns(self, color):
+    if color == BLACK: return self.black_posns
+    if color == WHITE: return self.white_posns
   # Querys the board and returns the number of pieces in a particular cpos
   @contract(query='$Query')
   def query(self, query):
-    if query.color == BLACK:
-      return self.black_posns.count(query.cpos)
-    if query.color == WHITE:
-      return self.white_posns.count(query.cpos)
-  
+    posns = self._get_posns(query.color)
+    return posns.count(query.cpos)
+    
+  @contract(move='$Move')
   def is_bop(self, move):
     opponent_color = self.color_check(move.dest_cpos)
     if opponent_color is None: return False
@@ -74,12 +79,9 @@ class Board(object):
   # moves the piece of the given color and cpos to the BAR
   @contract(color='Color', cpos='CPos')
   def bop(self, color, cpos):
-    if color == BLACK:
-      self.black_posns.remove(cpos)
-      self.black_posns.append(BAR)
-    if color == WHITE:
-      self.black_posns.remove(cpos)
-      self.black_posns.append(BAR)
+    posns = self._get_posns(color)
+    posns.remove(cpos)
+    posns.append(BAR)
     self._sort_board()
 
   # helper method to make sure the board is always sorted
@@ -90,13 +92,9 @@ class Board(object):
   # Makes a single move
   @contract(move='$Move')
   def make_move(self, move):
-    if move.color == BLACK:
-      self.black_posns.remove(move.source_cpos)
-      self.black_posns.append(move.dest_cpos)
-    if move.color == WHITE:
-      self.white_posns.remove(move.source_cpos)
-      self.white_posns.append(move.dest_cpos)
-
+    posns = self._get_posns(move.color)
+    posns.remove(move.source_cpos)
+    posns.append(move.dest_cpos)
     self._sort_board()
 
     # verify contract is still upheld
@@ -125,17 +123,17 @@ class Board(object):
   # checks if the player can bear off
   @contract(color='Color', returns='bool')
   def can_bear_off(self, color):
+    posns = self._get_posns(color)
     if color == BLACK: 
-      posns = self.black_posns 
       home_quadrant = range(1, 7)
     if color == WHITE: 
-      posns = self.white_posns
       home_quadrant = range(19, 25)
     for cpos in posns:
       if cpos not in home_quadrant and cpos != HOME:
         return False
     return True
 
+  # checks if the given move is valid given the dice
   @contract(move='$Move', dice='list[<=4](int)', returns='bool')
   def is_valid_move(self, move, dice):
       if move.color == BLACK:
@@ -158,7 +156,7 @@ class Board(object):
               return False
       if move.color == WHITE:
           if move.source_cpos == BAR:
-              dist = 25 - move.dest_cpos
+              dist = move.dest_cpos
               if dist in dice:
                   dice.remove(dist)
                   return True
@@ -194,7 +192,7 @@ class Board(object):
               if BAR in posns:
                   if (occupants == color or occupants == None):
                       self.make_move(move)
-                  if occupants != color:
+                  elif occupants != color:
                       return False
 
               # You can move checkers to points that are occupied by your own color (with no maximum limit of checkers on one point)
@@ -209,8 +207,34 @@ class Board(object):
                   return False
           else:
               return False
-      return self
-       
+      
+      # check if there are still moves possible
+      if dice and self.check_possible_moves(color, dice):
+        return False
+      else:
+        return self
+
+  @contract(color='Color', dice='list[<=4](int)', returns='bool')
+  def check_possible_moves(self, color, dice):
+    posns = self._get_posns(color)
+    potential_turn = []
+    for posn in posns:
+      for die in dice:
+        if color == WHITE:
+          dest = posn+die if posn+die != 25 else HOME
+          if not CPos(dest): continue
+          potential_turn.append([posn, dest])
+        if color == BLACK:
+          dest = posn-die if posn-die != 0 else HOME
+          if not CPos(dest): continue
+          potential_turn.append([posn, posn-die])
+    get_moves_from_turn(potential_turn, color)
+    moves = create_moves(potential_turn)
+    for move in moves:
+      if self.is_valid_move(move, dice):
+        return True
+    return False
+
 # class Dice(object):
 #   def __init__(self):
 #     self.values = [randint(1,6), randint(1,6)]
