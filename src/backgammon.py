@@ -176,34 +176,18 @@ class Board(object):
   @contract(color='Color', dice='ValidateDice', turn='ValidateTurn')
   def play_move(self, color, dice, turn):
         
+      posns = self._get_posns(color)
       for move in turn:
-          if color == BLACK:
-              posns = self.black_posns
-          if color == WHITE:
-              posns = self.white_posns
-          src = move.source_cpos
-          dst = move.dest_cpos
 
-          occupants = self.color_check(dst)
+          occupants = self.color_check(move.dest_cpos)
 
           # If there is no checker at src, then the move is invalid
           if self.src_exists(move) and self.is_valid_move(move, dice):
               # If a player has checkers on the bar, that takes first priority
               if BAR in posns:
-                  if occupants == color or occupants == None:
-                      self.make_move(move)
-                  # If your opponent only has one checker at the dst position, then the move is a 'bop'. Your piece takes the position and their piece is sent to the bar.
-                  elif occupants != color and self.is_bop(move):
-                    self.make_move(move)
-                    self.bop(occupants, dst)
-                  else:
-                    return False
-
-              # You can move checkers to points that are occupied by your own color (with no maximum limit of checkers on one point)
-              elif (occupants == color or occupants == None):
-                  self.make_move(move)
+                if self._play_move_helper(move, color, occupants): continue
               else:
-                  return False
+                if self._play_move_helper(move, color, occupants): continue
           else:
               return False
       
@@ -212,6 +196,19 @@ class Board(object):
         return False
       else:
         return self
+  
+  def _play_move_helper(self, move, color, occupants):
+    src = move.source_cpos
+    dst = move.dest_cpos
+    if occupants == color or occupants == None:
+      self.make_move(move)
+    # If your opponent only has one checker at the dst position, then the move is a 'bop'. Your piece takes the position and their piece is sent to the bar.
+    elif occupants != color and self.is_bop(move):
+      self.make_move(move)
+      self.bop(occupants, dst)
+    else:
+      return False
+    return True
 
   @contract(color='Color', dice='list[<=4](int)', returns='bool')
   def check_possible_moves(self, color, dice):
