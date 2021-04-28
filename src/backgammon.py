@@ -166,7 +166,7 @@ class Board(object):
                   dice.remove(dist)
                   return True
           elif move.dest_cpos == HOME and self.can_bear_off(move.color):
-              dist = 25 - move.src_cpos
+              dist = 25 - move.source_cpos
               if dist in dice:
                   dice.remove(dist)
                   return True
@@ -202,7 +202,7 @@ class Board(object):
               # If your opponent only has one checker at the dst position, then the move is a 'bop'. Your piece takes the position and their piece is sent to the bar.
               elif self.is_bop(move):
                   self.make_move(move)
-                  self.bop(color, dst) 
+                  self.bop(occupants, dst) 
               else:
                   return False
           else:
@@ -227,7 +227,7 @@ class Board(object):
         if color == BLACK:
           dest = posn-die if posn-die != 0 else HOME
           if not CPos(dest): continue
-          potential_turn.append([posn, posn-die])
+          potential_turn.append([posn, dest])
     get_moves_from_turn(potential_turn, color)
     moves = create_moves(potential_turn)
     for move in moves:
