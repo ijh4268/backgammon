@@ -138,7 +138,7 @@ class Board(object):
   def is_valid_move(self, move, dice):
       if move.color == BLACK:
           if move.source_cpos == BAR:
-              dist = move.dest_cpos
+              dist = 25 - move.dest_cpos
               if dist in dice:
                   dice.remove(dist)
                   return True
@@ -166,7 +166,7 @@ class Board(object):
                   dice.remove(dist)
                   return True
           elif move.dest_cpos == HOME and self.can_bear_off(move.color):
-              dist = 25 - move.source_cpos
+              dist = move.source_cpos
               if dist in dice:
                   dice.remove(dist)
                   return True
