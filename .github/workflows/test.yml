@@ -18,7 +18,7 @@ jobs:
 
       TEAM: team32
 
-      LOGLEVEL: info # Valid options are: error | info | debug
+      LOGLEVEL: debug # Valid options are: error | info | debug
 
     steps:
 
@@ -44,4 +44,4 @@ jobs:
 
       - name: Run tests
 
-        run: racket -O "$LOGLEVEL"@fest -W none -l software-construction-admin -- -v -M $MAJOR -m $MINOR -n "$TEAM"
+        run: racket -O "$LOGLEVEL"@fest -W none -l software-construction-admin -- -M $MAJOR -m $MINOR -n "$TEAM"

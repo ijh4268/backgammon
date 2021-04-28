@@ -1,7 +1,9 @@
 import backgammon as bg
 from constants import *
 from parse_json import parse_json
+from bg_contracts import *
 from contracts import contract
+from backgammon import Move
 import sys
 
 data = parse_json()[0]
@@ -52,20 +54,42 @@ def handle_board(data):
   sys.stdout.flush()
   sys.stdout.write(board_json)
 
-def get_board(data, return_type):
-  board = data[return_type][0]
+# ------------------- Data Methods -------------------
+
+def get_board(data, return_type=None):
+  if return_type is not None:
+    board = data[return_type][0]
+  else:
+    board = data[0]
   white_checkers = board[WHITE]
   black_checkers = board[BLACK]
   return bg.Board(black_checkers, white_checkers)
 
-def get_moves(data, return_type):
+def get_moves(data, return_type=None):
   moves = data[return_type][1:]
   return moves
 
-@contract(moves='list(list(str|int))')
+@contract(turn='list(list(str|int))')
+def get_moves_from_turn(turn, color):
+  for move in turn:
+    move.insert(0, color) 
+
+@contract(data='list', returns='str')
+def get_color(data):
+  return data[1]
+
+@contract(data='list', returns='list[2|4]')
+def get_dice(data):
+  return data[2]
+
+@contract(data='list', returns='list[N](list[2](int|str)), N>=2')
+def get_turn(data):
+  return data[3]
+
+@contract(moves='list(list(str|int))', returns='list($Move)')
 def create_moves(moves):
   for i, move in enumerate(moves):
     moves[i] = bg.Move(move[0], move[1], move[2])
   return moves
   
-parse_board(data)
+#parse_board(data)
