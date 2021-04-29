@@ -135,45 +135,43 @@ class Board(object):
       posns = self._get_posns(move.color)
       if move.color == BLACK:
           query = Query(WHITE, move.dest_cpos)
-          num_opponents = self.query(query)
+          num_opponents = self.query(query) if move.dest_cpos != HOME else 0
           if move.source_cpos == BAR:
             dist = 25 - move.dest_cpos  
           elif type(move.source_cpos) == int and type(move.dest_cpos) == int:
-            dist = abs(move.dest_cpos - move.source_cpos)
+            dist = move.source_cpos - move.dest_cpos
           elif move.dest_cpos == HOME and self.can_bear_off(move.color):
             dist = move.source_cpos
-            if dist not in dice and max(dice) not in posns:
+            if dist not in dice \
+            and max(dice) not in posns \
+            and move.source_cpos == max(filter(lambda x: type(x) == int, posns)):
               dice.remove(max(dice))
               return True
           else:
             return False
 
-          if dist in dice and num_opponents <= 1:
-            dice.remove(dist)
-            return True
-          else:
-            return False
-
       if move.color == WHITE:
           query = Query(BLACK, move.dest_cpos)
-          num_opponents = self.query(query)
+          num_opponents = self.query(query) if move.dest_cpos != HOME else 0
           if move.source_cpos == BAR:
               dist = move.dest_cpos
           elif type(move.source_cpos) == int and type(move.dest_cpos) == int:
-              dist = abs(move.source_cpos - move.dest_cpos)
+              dist = move.dest_cpos - move.source_cpos
           elif move.dest_cpos == HOME and self.can_bear_off(move.color):
               dist = 25 - move.source_cpos
-              if dist not in dice and max(dice) not in posns:
+              if dist not in dice \
+                and max(dice) not in posns \
+                and move.source_cpos == max(filter(lambda x: type(x) == int, posns)):
                 dice.remove(max(dice))
                 return True
           else:
               return False
 
-          if dist in dice and num_opponents <= 1:
-            dice.remove(dist)
-            return True
-          else:
-            return False
+      if dist in dice and num_opponents <= 1:
+        dice.remove(dist)
+        return True
+      else:
+        return False
 
   @contract(color='Color', dice='ValidateDice', turn='ValidateTurn')
   def play_move(self, color, dice, turn):
@@ -186,10 +184,10 @@ class Board(object):
       # If there is no checker at src, then the move is invalid
       if self.src_exists(move) and self.is_valid_move(move, dice):
           # If a player has checkers on the bar, that takes first priority
-          if BAR in posns:
+          if (BAR in posns and move.source_cpos == BAR) or (BAR not in posns):
             if self._play_move_helper(move, color, occupants): continue
           else:
-            if self._play_move_helper(move, color, occupants): continue
+            return False
       else:
           return False
       
@@ -202,7 +200,7 @@ class Board(object):
   def _play_move_helper(self, move, color, occupants):
     src = move.source_cpos
     dst = move.dest_cpos
-    if occupants == color or occupants == None:
+    if occupants == color or occupants == None or dst == HOME:
       self.make_move(move)
     # If your opponent only has one checker at the dst position, then the move is a 'bop'. Your piece takes the position and their piece is sent to the bar.
     elif occupants != color and self.is_bop(move):
