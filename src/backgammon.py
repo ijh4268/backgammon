@@ -144,7 +144,7 @@ class Board(object):
             dist = move.source_cpos
             if dist not in dice \
             and max(dice) not in posns \
-            and move.source_cpos == max(filter(lambda x: type(x) == int, posns)):
+            and move.source_cpos == max(list(filter(lambda x: type(x) == int, posns))):
               dice.remove(max(dice))
               return True
           else:
@@ -161,7 +161,7 @@ class Board(object):
               dist = 25 - move.source_cpos
               if dist not in dice \
                 and max(dice) not in posns \
-                and move.source_cpos == max(filter(lambda x: type(x) == int, posns)):
+                and move.source_cpos == min(list(filter(lambda x: type(x) == int, posns))):
                 dice.remove(max(dice))
                 return True
           else:
