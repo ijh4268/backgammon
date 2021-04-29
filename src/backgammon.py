@@ -52,10 +52,6 @@ class Board(object):
     self.board_contract.check(self.black_posns)
     self.board_contract.check(self.white_posns)
 
-  @contract(color='Color', cpos='CPos')
-  def _get_query(self, color, cpos):
-    return Query(color, cpos)
-
   @contract(color='Color')
   def _get_posns(self, color):
     if color == BLACK: return self.black_posns
@@ -70,7 +66,7 @@ class Board(object):
   def is_bop(self, move):
     opponent_color = self.color_check(move.dest_cpos)
     if opponent_color is None: return False
-    query = self._get_query(self.color_check(move.dest_cpos), move.dest_cpos)
+    query = Query(self.color_check(move.dest_cpos), move.dest_cpos)
     if self.color_check(move.dest_cpos) != move.color and self.query(query) == 1:
         return True
     else:
@@ -104,8 +100,8 @@ class Board(object):
   # Checks if there is a checker in the src position (given by the Move object)
   @contract(move='$Move', returns='bool')
   def src_exists(self, move):
-    color = self.color_check(move.source_cpos)
-    if color == move.color:
+    posns = self._get_posns(move.color)
+    if move.source_cpos in posns:
         return True
     else:
         return False
@@ -115,7 +111,7 @@ class Board(object):
   def color_check(self, pos):
     if pos in self.black_posns:
         return BLACK
-    if pos in self.white_posns:
+    elif pos in self.white_posns:
         return WHITE
     else:
         return None
@@ -136,66 +132,72 @@ class Board(object):
   # checks if the given move is valid given the dice
   @contract(move='$Move', dice='list[<=4](int)', returns='bool')
   def is_valid_move(self, move, dice):
+      posns = self._get_posns(move.color)
       if move.color == BLACK:
+          query = Query(WHITE, move.dest_cpos)
+          num_opponents = self.query(query)
           if move.source_cpos == BAR:
-              dist = 25 - move.dest_cpos
-              if dist in dice:
-                  dice.remove(dist)
-                  return True
+            dist = 25 - move.dest_cpos  
           elif type(move.source_cpos) == int and type(move.dest_cpos) == int:
-              dist = abs(move.dest_cpos - move.source_cpos)
-              if dist in dice:
-                  dice.remove(dist)
-                  return True
+            dist = abs(move.dest_cpos - move.source_cpos)
           elif move.dest_cpos == HOME and self.can_bear_off(move.color):
-              dist = move.source_cpos
-              if dist in dice:
-                  dice.remove(dist)
-                  return True
+            dist = move.source_cpos
+            if dist not in dice and max(dice) not in posns:
+              dice.remove(max(dice))
+              return True
           else:
-              return False
+            return False
+
+          if dist in dice and num_opponents <= 1:
+            dice.remove(dist)
+            return True
+          else:
+            return False
+
       if move.color == WHITE:
+          query = Query(BLACK, move.dest_cpos)
+          num_opponents = self.query(query)
           if move.source_cpos == BAR:
               dist = move.dest_cpos
-              if dist in dice:
-                  dice.remove(dist)
-                  return True
           elif type(move.source_cpos) == int and type(move.dest_cpos) == int:
               dist = abs(move.source_cpos - move.dest_cpos)
-              if dist in dice:
-                  dice.remove(dist)
-                  return True
           elif move.dest_cpos == HOME and self.can_bear_off(move.color):
-              dist = move.source_cpos
-              if dist in dice:
-                  dice.remove(dist)
-                  return True
+              dist = 25 - move.source_cpos
+              if dist not in dice and max(dice) not in posns:
+                dice.remove(max(dice))
+                return True
           else:
               return False
+
+          if dist in dice and num_opponents <= 1:
+            dice.remove(dist)
+            return True
+          else:
+            return False
 
   @contract(color='Color', dice='ValidateDice', turn='ValidateTurn')
   def play_move(self, color, dice, turn):
         
+    for move in turn:
       posns = self._get_posns(color)
-      for move in turn:
 
-          occupants = self.color_check(move.dest_cpos)
+      occupants = self.color_check(move.dest_cpos)
 
-          # If there is no checker at src, then the move is invalid
-          if self.src_exists(move) and self.is_valid_move(move, dice):
-              # If a player has checkers on the bar, that takes first priority
-              if BAR in posns:
-                if self._play_move_helper(move, color, occupants): continue
-              else:
-                if self._play_move_helper(move, color, occupants): continue
+      # If there is no checker at src, then the move is invalid
+      if self.src_exists(move) and self.is_valid_move(move, dice):
+          # If a player has checkers on the bar, that takes first priority
+          if BAR in posns:
+            if self._play_move_helper(move, color, occupants): continue
           else:
-              return False
-      
-      # check if there are still moves possible
-      if dice and self.check_possible_moves(color, dice):
-        return False
+            if self._play_move_helper(move, color, occupants): continue
       else:
-        return self
+          return False
+      
+    # check if there are still moves possible
+    if dice and self.check_possible_moves(color, dice):
+      return False
+    else:
+      return self
   
   def _play_move_helper(self, move, color, occupants):
     src = move.source_cpos
@@ -210,19 +212,30 @@ class Board(object):
       return False
     return True
 
+  # Checks if there are any remaining legal moves left given that there are still dice remaining to use
   @contract(color='Color', dice='list[<=4](int)', returns='bool')
   def check_possible_moves(self, color, dice):
     posns = self._get_posns(color)
     potential_turn = []
-    for posn in posns:
-      for die in dice:
+    for die in dice:
+      for posn in posns:
+        if posn == HOME: continue
         if color == WHITE:
-          dest = posn+die if posn+die != 25 else HOME
-          if not CPos(dest): continue
-          potential_turn.append([posn, dest])
-        if color == BLACK:
-          dest = posn-die if posn-die != 0 else HOME
-          if not CPos(dest): continue
+          if posn == BAR:
+            dest = 0+die
+            potential_turn.append([posn, dest])
+            break
+          else:
+            dest = posn+die if posn+die != 25 else HOME
+        elif color == BLACK:
+          # if there is a player on the bar, that's the only move we need to check
+          if posn == BAR:
+            dest = 25-die
+            potential_turn.append([posn, dest])
+            break
+          else:
+            dest = posn-die if posn-die != 0 else HOME
+        if CPos(dest): 
           potential_turn.append([posn, dest])
     get_moves_from_turn(potential_turn, color)
     moves = create_moves(potential_turn)

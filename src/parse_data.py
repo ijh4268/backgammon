@@ -81,7 +81,7 @@ def get_color(data):
 def get_dice(data):
   return data[2]
 
-@contract(data='list', returns='list[N](list[2](int|str)), N>=1')
+@contract(data='list', returns='list(list[2](int|str))')
 def get_turn(data):
   return data[3]
 
