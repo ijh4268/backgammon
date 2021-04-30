@@ -121,9 +121,9 @@ class Board(object):
   def can_bear_off(self, color):
     posns = self._get_posns(color)
     if color == BLACK: 
-      home_quadrant = range(1, 7)
+      home_quadrant = BLACK_HOME_QUAD
     if color == WHITE: 
-      home_quadrant = range(19, 25)
+      home_quadrant = WHITE_HOME_QUAD
     for cpos in posns:
       if cpos not in home_quadrant and cpos != HOME:
         return False
@@ -136,15 +136,19 @@ class Board(object):
       if move.color == BLACK:
           query = Query(WHITE, move.dest_cpos)
           num_opponents = self.query(query) if move.dest_cpos != HOME else 0
+          # Black player wants to move from BAR
           if move.source_cpos == BAR:
-            dist = 25 - move.dest_cpos  
+            dist = BLACK_BAR - move.dest_cpos  
+          # Black player wants to move on board
           elif type(move.source_cpos) == int and type(move.dest_cpos) == int:
             dist = move.source_cpos - move.dest_cpos
+          # Black player wants to move HOME
           elif move.dest_cpos == HOME and self.can_bear_off(move.color):
             dist = move.source_cpos
+            # Handle case where value of dice exceeds furthest checker
             if dist not in dice \
             and max(dice) not in posns \
-            and move.source_cpos == max(list(filter(lambda x: type(x) == int, posns))):
+            and move.source_cpos == max(filter(lambda x: type(x) == int, posns)):
               dice.remove(max(dice))
               return True
           else:
@@ -153,15 +157,19 @@ class Board(object):
       if move.color == WHITE:
           query = Query(BLACK, move.dest_cpos)
           num_opponents = self.query(query) if move.dest_cpos != HOME else 0
-          if move.source_cpos == BAR:
+          # White player wants to move from the BAR
+          if move.source_cpos == BAR: 
               dist = move.dest_cpos
-          elif type(move.source_cpos) == int and type(move.dest_cpos) == int:
+          # White player wants to move on the board
+          elif type(move.source_cpos) == int and type(move.dest_cpos) == int: 
               dist = move.dest_cpos - move.source_cpos
-          elif move.dest_cpos == HOME and self.can_bear_off(move.color):
-              dist = 25 - move.source_cpos
+          # White player wants to move HOME
+          elif move.dest_cpos == HOME and self.can_bear_off(move.color): 
+              dist = WHITE_HOME - move.source_cpos
+              # Handle case where value of dice exceeds furthest checker
               if dist not in dice \
-                and max(dice) not in posns \
-                and move.source_cpos == min(list(filter(lambda x: type(x) == int, posns))):
+              and max(dice) not in posns \
+              and move.source_cpos == min(filter(lambda x: type(x) == int, posns)):
                 dice.remove(max(dice))
                 return True
           else:
@@ -198,11 +206,11 @@ class Board(object):
       return self
   
   def _play_move_helper(self, move, color, occupants):
-    src = move.source_cpos
     dst = move.dest_cpos
     if occupants == color or occupants == None or dst == HOME:
       self.make_move(move)
-    # If your opponent only has one checker at the dst position, then the move is a 'bop'. Your piece takes the position and their piece is sent to the bar.
+    # If your opponent only has one checker at the dst position, then the move is a 'bop'. 
+    # Your piece takes the position and their piece is sent to the bar.
     elif occupants != color and self.is_bop(move):
       self.make_move(move)
       self.bop(occupants, dst)
@@ -217,26 +225,35 @@ class Board(object):
     potential_turn = []
     for die in dice:
       for posn in posns:
-        if posn == HOME: continue
+        if posn == HOME: continue # if the checker is already home, the we can skip
+
         if color == WHITE:
-          if posn == BAR:
-            dest = 0+die
+          # if there is a player on the bar, that's the only move we need to check
+          if posn == BAR: 
+            dest = WHITE_BAR+die
             potential_turn.append([posn, dest])
-            break
+            break 
           else:
-            dest = posn+die if posn+die != 25 else HOME
-        elif color == BLACK:
+            # calculate potential destination move
+            dest = posn+die if posn+die != WHITE_HOME else HOME
+
+        if color == BLACK:
           # if there is a player on the bar, that's the only move we need to check
           if posn == BAR:
-            dest = 25-die
+            dest = BLACK_BAR-die
             potential_turn.append([posn, dest])
             break
           else:
-            dest = posn-die if posn-die != 0 else HOME
+            # calculate potential destination move
+            dest = posn-die if posn-die != BLACK_HOME else HOME
+
+        # Verify the destination is a valid CPos 
         if CPos(dest): 
           potential_turn.append([posn, dest])
+    # Generate moves from the potential turn
     get_moves_from_turn(potential_turn, color)
     moves = create_moves(potential_turn)
+    # Check if the moves are valid
     for move in moves:
       if self.is_valid_move(move, dice):
         return True
