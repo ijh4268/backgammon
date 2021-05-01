@@ -1,12 +1,33 @@
-from contracts import contract
 from bg_contracts import *
 from constants import *
+from contracts import contract
 from parse_data import get_moves_from_turn, create_moves
 from sort import sort
 from random import randint
 import json
 
 #----------------------------- Backgammon Classes ----------------------------
+
+# ============================================================================
+class Player(object):
+  def __init__(self, name):
+    self.name = name
+  
+  @contract(color='Color', opponent_name='str')
+  def start_game(color, opponent_name):
+    print('The game has started!')
+    print(f'Your color is {color}')
+    print(f'Your opponent\'s name is {opponent_name}')
+  
+  @contract(board='$Board', dice='$Dice', returns='list($Move)')
+  def turn(board, dice):
+    print('Take your turn.')
+
+  @contract(board='$Board', has_won='bool')
+  def end_game(board, has_won):
+    print('Game over!')
+    result_msg = 'won!' if has_won else 'lost!'
+    print(f'You have ' + result_msg)
 # ============================================================================
 class Query(object):
   @contract(color='Color', cpos='CPos')
@@ -131,14 +152,19 @@ class Board(object):
 
   # checks if the given move is valid given the dice
   @contract(move='$Move', dice='list[<=4](int)', returns='bool')
+  # Have variable to determine direction of travel, then multiply by dice value (get rid of add/sub)
+  # TODO: Refactor to remove copied code (visitor classes?, helper functions?, loops?)
   def is_valid_move(self, move, dice):
       posns = self._get_posns(move.color)
+      curr_color = BLACK if move.color != WHITE else WHITE
+      opp_color = WHITE if move.color != WHITE else BLACK
       if move.color == BLACK:
-          query = Query(WHITE, move.dest_cpos)
+          query = Query(opp_color, move.dest_cpos)
           num_opponents = self.query(query) if move.dest_cpos != HOME else 0
           # Black player wants to move from BAR
           if move.source_cpos == BAR:
             dist = BLACK_BAR - move.dest_cpos  
+
           # Black player wants to move on board
           elif type(move.source_cpos) == int and type(move.dest_cpos) == int:
             dist = move.source_cpos - move.dest_cpos
