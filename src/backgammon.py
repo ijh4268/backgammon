@@ -139,7 +139,7 @@ class Board(object):
     return json.dumps({BLACK:self.black.posns, WHITE:self.white.posns})
 
   def _get_opponent(self, color):
-    return self.black if color.name == WHITE else self.white
+    return self.black if color.name() == WHITE else self.white
 
   # Makes a sequence of moves
   @contract(moves='list($Move)')
@@ -279,11 +279,11 @@ class Board(object):
   @contract(move='$Move', color='$Color', occupants='$Color|None')
   def _play_move_helper(self, move, color, occupants):
     dst = move.dest_cpos
-    if occupants == None or occupants.name == color.name or dst == HOME:
+    if occupants == None or occupants.name() == color.name() or dst == HOME:
       self.make_move(move)
     # If your opponent only has one checker at the dst position, then the move is a 'bop'. 
     # Your piece takes the position and their piece is sent to the bar.
-    elif occupants.name != color.name and self.is_bop(move):
+    elif self.is_bop(move):
       self.make_move(move)
       self.bop(occupants, dst)
     else:
