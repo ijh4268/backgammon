@@ -50,7 +50,7 @@ class Color(metaclass=ABCMeta):
     pass
 
   @abstractmethod
-  def dir_of_travel():
+  def correct_dir():
     pass
 
   @abstractmethod
@@ -69,8 +69,8 @@ class Black(Color):
     return BLACK_HOME
   def home_quadrant(self):
     return BLACK_HOME_QUAD
-  def dir_of_travel(self):
-    return -1
+  def correct_dir(self, move):
+    return move.dest_cpos < move.source_cpos
   def farthest(self):
     only_nums = filter(lambda x: type(x) == int, self.posns)
     return max(only_nums)
@@ -87,8 +87,8 @@ class White(Color):
     return WHITE_HOME
   def home_quadrant(self):
     return WHITE_HOME_QUAD
-  def dir_of_travel(self):
-    return 1
+  def correct_dir(self, move):
+    return move.source_cpos < move.dest_cpos
   def farthest(self):
     only_nums = filter(lambda x: type(x) == int, self.posns)
     return min(only_nums)
@@ -111,7 +111,6 @@ class Move(object):
     self.dest_cpos = dest_cpos
 
   def get_distance(self):
-    direction = self.color.dir_of_travel()
     if self.source_cpos == BAR:
       return abs(self.dest_cpos - self.color.bar()) 
     if type(self.source_cpos) == int and type(self.dest_cpos) == int:
@@ -236,6 +235,8 @@ class Board(object):
   # TODO: Refactor to remove copied code (visitor classes?, helper functions?, loops?)
   def is_valid_move(self, move, dice):
     player = move.color
+    if not player.correct_dir(move): return False
+    
     opponent = self._get_opponent(player)
     query = Query(opponent, move.dest_cpos)
     num_opponents = self.query(query) if move.dest_cpos != HOME else 0
