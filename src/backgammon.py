@@ -69,8 +69,12 @@ class Black(Color):
     return BLACK_HOME
   def home_quadrant(self):
     return BLACK_HOME_QUAD
+  def dir_of_travel(self):
+    return -1
   def correct_dir(self, move):
-    return move.dest_cpos < move.source_cpos
+    if move.source_cpos == BAR: return self.bar() > move.dest_cpos
+    if move.dest_cpos == HOME: return move.source_cpos > self.home()
+    else: return move.source_cpos > move.dest_cpos
   def farthest(self):
     only_nums = filter(lambda x: type(x) == int, self.posns)
     return max(only_nums)
@@ -87,8 +91,12 @@ class White(Color):
     return WHITE_HOME
   def home_quadrant(self):
     return WHITE_HOME_QUAD
+  def dir_of_travel(self):
+    return 1
   def correct_dir(self, move):
-    return move.source_cpos < move.dest_cpos
+    if move.source_cpos == BAR: return self.bar() < move.dest_cpos
+    if move.dest_cpos == HOME: return move.source_cpos < self.home()
+    else: return move.source_cpos < move.dest_cpos
   def farthest(self):
     only_nums = filter(lambda x: type(x) == int, self.posns)
     return min(only_nums)
@@ -109,6 +117,7 @@ class Move(object):
     self.color = color
     self.source_cpos = source_cpos
     self.dest_cpos = dest_cpos
+    self.as_list = [self.source_cpos, self.dest_cpos]
 
   def get_distance(self):
     if self.source_cpos == BAR:
@@ -120,6 +129,21 @@ class Move(object):
     
   def to_json(self):
     return json.dumps([self.color.name, self.source_cpos, self.dest_cpos])
+# ============================================================================
+class Dice(object):
+  @contract(values='ValidateDice')
+  def __init__(self, values):
+    self.values = values
+  
+  def combos(self):
+    if len(self.values) == 2:
+      combos = self.values + [sum(self.values)]
+    elif len(self.values) > 2:
+      combos = [value * mult for value, mult in zip(self.values, range(1, len(self.values) + 1))]
+    else:
+      combos = self.values
+    return sorted(combos, reverse=True)
+
 # ============================================================================
 class Board(object):
   @contract (black_posns='list[15](int|str)', white_posns='list[15](int|str)')
@@ -218,7 +242,7 @@ class Board(object):
         return False
     return True
 
-  @contract(move='$Move', dice='list[<=4](int)', returns='bool')
+  @contract(move='$Move', dice='$Dice', returns='bool')
   def _bear_off(self, move, dice):
     player = move.color
     posns = player.posns
@@ -230,13 +254,13 @@ class Board(object):
 
 
   # checks if the given move is valid given the dice
-  @contract(move='$Move', dice='list[<=4](int)', returns='bool')
+  @contract(move='$Move', dice='$Dice', returns='bool')
   # Have variable to determine direction of travel, then multiply by dice value (get rid of add/sub)
   # TODO: Refactor to remove copied code (visitor classes?, helper functions?, loops?)
   def is_valid_move(self, move, dice):
     player = move.color
     if not player.correct_dir(move): return False
-    
+
     opponent = self._get_opponent(player)
     query = Query(opponent, move.dest_cpos)
     num_opponents = self.query(query) if move.dest_cpos != HOME else 0
@@ -244,42 +268,43 @@ class Board(object):
 
     if move.dest_cpos == HOME and not self.can_bear_off(player): return False
     
-    if dist in dice and num_opponents <= 1:
-      dice.remove(dist)
+    if dist in dice.combos() and num_opponents <= 1:
       return True
     # Handle case where value of dice exceeds furthest checker
     elif move.dest_cpos == HOME and self._bear_off(move, dice):
-      dice.remove(max(dice))
       return True
     else:
       return False
 
-  @contract(color='$Color', dice='ValidateDice', turn='ValidateTurn')
+  @contract(color='$Color', dice='$Dice', turn='ValidateTurn')
   def play_move(self, color, dice, turn):
     for move in turn:
       posns = color.posns
 
       occupants = self.color_check(move.dest_cpos)
 
+      valid_moves = self.get_possible_moves(color, dice)
       # If there is no checker at src, then the move is invalid
-      if self.src_exists(move) and self.is_valid_move(move, dice):
-          # If a player has checkers on the bar, that takes first priority
-          if (BAR in posns and move.source_cpos == BAR) or (BAR not in posns):
-            if self._play_move_helper(move, color, occupants): continue
-          else:
-            return False
-      else:
+      if self.src_exists(move) and move.as_list in valid_moves:
+        valid_moves.remove(move.as_list)
+        # If a player has checkers on the bar, that takes first priority
+        if (BAR in posns and move.source_cpos == BAR) or (BAR not in posns):
+          if self._play_move_helper(move, color, dice, occupants): continue
+        else:
           return False
+      else:
+        return False
       
     # check if there are still moves possible
-    if dice and self.check_possible_moves(color, dice):
+    if valid_moves and dice.values:
       return False
     else:
       return self
   
-  @contract(move='$Move', color='$Color', occupants='$Color|None')
-  def _play_move_helper(self, move, color, occupants):
+  @contract(move='$Move', color='$Color', dice='$Dice', occupants='$Color|None')
+  def _play_move_helper(self, move, color, dice, occupants):
     dst = move.dest_cpos
+    distance = move.get_distance()
     if occupants == None or occupants.name() == color.name() or dst == HOME:
       self.make_move(move)
     # If your opponent only has one checker at the dst position, then the move is a 'bop'. 
@@ -289,36 +314,37 @@ class Board(object):
       self.bop(occupants, dst)
     else:
       return False
+    dice.values.remove(distance)
     return True
 
   # Checks if there are any remaining legal moves left given that there are still dice remaining to use
-  @contract(color='$Color', dice='list[<=4](int)', returns='bool')
-  def check_possible_moves(self, color, dice):
+  @contract(color='$Color', dice='$Dice', returns='list(list[2](int|str))')
+  def get_possible_moves(self, color, dice):
     posns = color.posns
-    potential_turn = []
-    for die in dice:
+    valid_moves = []
+    dir = color.dir_of_travel()
+    for die in dice.values:
+      potential_moves = []
       for posn in posns:
         if posn == HOME: continue # if the checker is already home, the we can skip
         if posn == BAR: 
-          dir = color.dir_of_travel()
           dest = color.bar()+(die * dir)
-          potential_turn.append([posn, dest])
+          potential_moves.append([posn, dest])
           break 
         else:
           # calculate potential destination move
-          dir = color.dir_of_travel()
           dest = posn+(die * dir) if posn+(die * dir) != color.home() else HOME
         # Verify the destination is a valid CPos 
         if CPos(dest): 
-          potential_turn.append([posn, dest])
-    # Generate moves from the potential turn
-    get_moves_from_turn(potential_turn, color)
-    moves = create_moves(potential_turn)
-    # Check if the moves are valid
-    for move in moves:
-      if self.is_valid_move(move, dice):
-        return True
-    return False
+          potential_moves.append([posn, dest])
+      # Generate moves from the potential turn
+      get_moves_from_turn(potential_moves, color)
+      moves = create_moves(potential_moves)
+      # Check if the moves are valid
+      for move in moves:
+        if self.is_valid_move(move, dice) and move.as_list not in valid_moves:
+          valid_moves.append(move.as_list)
+    return valid_moves
 # ============================================================================
 # class Player(object):
 #   def __init__(self, name):

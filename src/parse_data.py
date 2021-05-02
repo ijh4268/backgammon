@@ -81,9 +81,9 @@ def get_color(data, board):
   else:
     raise('Invalid color input!')
 
-@contract(data='list', returns='list[2|4]')
+@contract(data='list')
 def get_dice(data):
-  return data[2]
+  return bg.Dice(data[2])
 
 @contract(data='list', returns='list(list[2](int|str))')
 def get_turn(data):
