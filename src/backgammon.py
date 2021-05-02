@@ -247,7 +247,7 @@ class Board(object):
       dice.remove(dist)
       return True
     # Handle case where value of dice exceeds furthest checker
-    elif self._bear_off(move, dice):
+    elif move.dest_cpos == HOME and self._bear_off(move, dice):
       dice.remove(max(dice))
       return True
     else:
