@@ -56,6 +56,10 @@ class Color(metaclass=ABCMeta):
   @abstractmethod
   def farthest():
     pass
+
+  @abstractmethod
+  def get_destination():
+    pass
 # ============================================================================
 class Black(Color):
   def __init__(self, posns=BLACK_INIT):
@@ -78,6 +82,13 @@ class Black(Color):
   def farthest(self):
     only_nums = filter(lambda x: type(x) == int, self.posns)
     return max(only_nums)
+  def get_destination(self, posn, die):
+    die = die * self.dir_of_travel()
+    if posn == BAR:
+      return self.bar()+die
+    elif posn + die <= self.home(): return HOME
+    else: return posn + die
+  
 
 class White(Color):
   def __init__(self, posns=WHITE_INIT):
@@ -100,6 +111,13 @@ class White(Color):
   def farthest(self):
     only_nums = filter(lambda x: type(x) == int, self.posns)
     return min(only_nums)
+  def get_destination(self, posn, die):
+    die = die * self.dir_of_travel()
+    if posn == BAR:
+      return self.bar()+die
+    elif posn + die >= self.home(): return HOME
+    else: return posn + die
+
      
 # ============================================================================
 class Query(object):
@@ -246,7 +264,7 @@ class Board(object):
   def _bear_off(self, move, dice):
     player = move.color
     posns = player.posns
-    if max(dice) not in posns \
+    if max(dice.values) not in posns \
     and move.source_cpos == player.farthest():
       return True
     else:
@@ -278,6 +296,7 @@ class Board(object):
 
   @contract(color='$Color', dice='$Dice', turn='ValidateTurn')
   def play_move(self, color, dice, turn):
+    if not turn: valid_moves = self.get_possible_moves(color, dice)
     for move in turn:
       posns = color.posns
 
@@ -314,7 +333,8 @@ class Board(object):
       self.bop(occupants, dst)
     else:
       return False
-    dice.values.remove(distance)
+    if distance < max(dice.values): dice.values.remove(max(dice.values))
+    else: dice.values.remove(distance)
     return True
 
   # Checks if there are any remaining legal moves left given that there are still dice remaining to use
@@ -322,18 +342,14 @@ class Board(object):
   def get_possible_moves(self, color, dice):
     posns = color.posns
     valid_moves = []
-    dir = color.dir_of_travel()
     for die in dice.values:
       potential_moves = []
       for posn in posns:
         if posn == HOME: continue # if the checker is already home, the we can skip
-        if posn == BAR: 
-          dest = color.bar()+(die * dir)
+        dest = color.get_destination(posn, die)
+        if posn == BAR: # if the checker is on the bar, we only check those
           potential_moves.append([posn, dest])
           break 
-        else:
-          # calculate potential destination move
-          dest = posn+(die * dir) if posn+(die * dir) != color.home() else HOME
         # Verify the destination is a valid CPos 
         if CPos(dest): 
           potential_moves.append([posn, dest])
