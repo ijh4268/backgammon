@@ -86,8 +86,12 @@ class Black(Color):
     die = die * self.dir_of_travel()
     if posn == BAR:
       return self.bar()+die
-    elif posn + die <= self.home(): return HOME
+    elif posn == HOME or posn + die <= self.home() : return HOME
     else: return posn + die
+  def as_value(self, posn):
+    if posn == BAR: return self.bar()
+    if posn == HOME: return self.home()
+    else: return posn
   
 
 class White(Color):
@@ -115,8 +119,12 @@ class White(Color):
     die = die * self.dir_of_travel()
     if posn == BAR:
       return self.bar()+die
-    elif posn + die >= self.home(): return HOME
+    elif posn == HOME or posn + die >= self.home(): return HOME
     else: return posn + die
+  def as_value(self, posn):
+    if posn == BAR: return self.bar()
+    if posn == HOME: return self.home()
+    else: return posn
 
      
 # ============================================================================
@@ -297,10 +305,11 @@ class Board(object):
   @contract(color='$Color', dice='$Dice', turn='ValidateTurn')
   def play_move(self, color, dice, turn):
     if not turn: valid_moves = self.get_possible_moves(color, dice)
+    original_combos = dice.combos()
     for move in turn:
       posns = color.posns
-
-      occupants = self.color_check(move.dest_cpos)
+      curr_move = move
+      occupants_next_die = self.color_check(move.dest_cpos)
 
       valid_moves = self.get_possible_moves(color, dice)
       # If there is no checker at src, then the move is invalid
@@ -308,7 +317,7 @@ class Board(object):
         valid_moves.remove(move.as_list)
         # If a player has checkers on the bar, that takes first priority
         if (BAR in posns and move.source_cpos == BAR) or (BAR not in posns):
-          if self._play_move_helper(move, color, dice, occupants): continue
+          if self._play_move_helper(move, color, dice, occupants_next_die): continue
         else:
           return False
       else:
@@ -316,9 +325,14 @@ class Board(object):
       
     # check if there are still moves possible
     if valid_moves and dice.values:
-      return False
-    else:
-      return self
+      for val in dice.values:
+        for move in valid_moves:
+          destination_next_die = color.get_destination(curr_move.dest_cpos, val)
+          destination_valid_move = color.get_destination(move[1], max(original_combos)-val)
+          if destination_next_die != destination_valid_move \
+          or (destination_valid_move == destination_next_die == HOME):
+              return False
+    return self
   
   @contract(move='$Move', color='$Color', dice='$Dice', occupants='$Color|None')
   def _play_move_helper(self, move, color, dice, occupants):
