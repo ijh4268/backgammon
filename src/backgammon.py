@@ -324,6 +324,7 @@ class Board(object):
         return False
       
     # check if there are still moves possible
+    if valid_moves and not turn: return False
     if valid_moves and dice.values:
       for val in dice.values:
         for move in valid_moves:

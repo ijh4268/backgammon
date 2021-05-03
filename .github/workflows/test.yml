@@ -18,7 +18,7 @@ jobs:
 
       TEAM: team32
 
-      LOGLEVEL: error # Valid options are: error | info | debug
+      LOGLEVEL: info # Valid options are: error | info | debug
 
     steps:
 
