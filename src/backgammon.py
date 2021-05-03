@@ -333,8 +333,8 @@ class Board(object):
       self.bop(occupants, dst)
     else:
       return False
-    if distance < max(dice.values): dice.values.remove(max(dice.values))
-    else: dice.values.remove(distance)
+    if distance in dice.values: dice.values.remove(distance)
+    else: dice.values.remove(max(dice.values))
     return True
 
   # Checks if there are any remaining legal moves left given that there are still dice remaining to use
