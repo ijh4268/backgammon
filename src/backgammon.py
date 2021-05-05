@@ -449,6 +449,7 @@ class RandomPlayer(Player):
         distance = random_move.get_distance()
         if distance in dice_copy.values:
           dice_copy.values.remove(distance)
+        else: dice_copy.values.remove(max(dice_copy.values))
         random_turn.append(random_move)
         board_copy.make_move(random_move)
       else: break
