@@ -438,7 +438,7 @@ class RandomPlayer(Player):
     board_copy = copy.deepcopy(board)
     dice_copy = copy.deepcopy(dice)
     color = board_copy.get_color(self.color)
-    print(self.name + ' is taking their turn')
+    # print(self.name + ' is taking their turn')
     random_turn = []
     while dice_copy.values:
       valid_moves = board_copy.get_possible_moves(color, dice_copy)
