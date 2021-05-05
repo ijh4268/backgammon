@@ -12,13 +12,9 @@ dice = get_dice(data)
 
 random_player = bg.RandomPlayer('random', color)
 
-while True:
-  try:
-    turn = random_player.turn(copy.deepcopy(board), copy.deepcopy(dice))
-    if turn == False: continue
-  except ContractException:
-    continue
-  break
+turn = random_player.turn(board, dice)
+if turn == False: 
+  print('Failed!')
 
 turn = json.dumps(turn)
 

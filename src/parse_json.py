@@ -35,21 +35,3 @@ def parse_json():
         data.append(item)
     only_dicts = list(filter(lambda x: type(x) == dict or type(x) == list, data))
     return only_dicts
-
-# only_dicts = parse_json()
-
-# # Filter out any unwanted data
-# filtered = list(filter(lambda x: len(x)==1 and special_feature in x \
-#                         and type(x[special_feature]) == int \
-#                         and x[special_feature] in valid_nums, only_dicts))
-
-# # separate data into chuncks of 10
-# chunks = list(chunkify(filtered, n))
-
-# sorted = []
-# for chunk in chunks:
-#     if len(chunk) == n: sorted.append(sort(chunk, special_feature))
-
-# sorted_json = json.dumps(sorted)
-
-
