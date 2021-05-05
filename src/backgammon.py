@@ -344,7 +344,7 @@ class Board(object):
     else:
       return self
 
-  @contract(last_move='$Move', valid_moves='list($Move)', dice='$Dice', returns='bool')
+  @contract(last_move='$Move', valid_moves='list(list[2](int|str))', dice='$Dice', returns='bool')
   def _can_use_more_dice(self, last_move, valid_moves, dice):
     color = last_move.color
     for val in dice.values:
