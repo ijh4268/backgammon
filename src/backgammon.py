@@ -1,9 +1,11 @@
 from abc import ABCMeta, abstractmethod
+
+from contracts.interface import ContractNotRespected
 from parse_data import get_moves_from_turn, create_moves
 from constants import *
 from contracts import contract, new_contract
 from sort import sort
-import json
+import json, random, copy
 
 #---------------------------- Backgammon Contracts ---------------------------
 
@@ -33,30 +35,35 @@ def ValidateTurn(turn):
 #----------------------------- Backgammon Classes ----------------------------
 # ============================================================================
 class Color(metaclass=ABCMeta):
+  # returns the name of the color
   @abstractmethod
   def name():
     pass
-
+  # returns the value of the player's BAR
   @abstractmethod
   def bar():
     pass
-
+  # returns the value of the player's HOME
   @abstractmethod
   def home():
     pass
-
+  # return the range of values in the player's home board
   @abstractmethod
   def home_quadrant():
     pass
-
+  # returns the direction the player travels on the board
+  @abstractmethod
+  def dir_of_travel():
+    pass
+  # returns whether or not the player is traveling in the right direction 
   @abstractmethod
   def correct_dir():
     pass
-
+  # returns the position of the player farthest from HOME
   @abstractmethod
   def farthest():
     pass
-
+  # returns the destination of the player given their current position and the die they wish to move by
   @abstractmethod
   def get_destination():
     pass
@@ -88,10 +95,6 @@ class Black(Color):
       return self.bar()+die
     elif posn == HOME or posn + die <= self.home() : return HOME
     else: return posn + die
-  def as_value(self, posn):
-    if posn == BAR: return self.bar()
-    if posn == HOME: return self.home()
-    else: return posn
   
 
 class White(Color):
@@ -121,10 +124,6 @@ class White(Color):
       return self.bar()+die
     elif posn == HOME or posn + die >= self.home(): return HOME
     else: return posn + die
-  def as_value(self, posn):
-    if posn == BAR: return self.bar()
-    if posn == HOME: return self.home()
-    else: return posn
 
      
 # ============================================================================
@@ -160,6 +159,7 @@ class Dice(object):
   @contract(values='ValidateDice')
   def __init__(self, values):
     self.values = values
+    self.original_combos = self.combos()
   
   def combos(self):
     if len(self.values) == 2:
@@ -189,6 +189,13 @@ class Board(object):
 
   def _get_opponent(self, color):
     return self.black if color.name() == WHITE else self.white
+  
+  @contract(color='$Color')
+  def get_color(self, color):
+    if color.name() == BLACK: return self.black
+    elif color.name() == WHITE: return self.white
+    else: raise ContractNotRespected
+
 
   # Makes a sequence of moves
   @contract(moves='list($Move)')
@@ -196,16 +203,17 @@ class Board(object):
     for move in moves:
       self.make_move(move)
     # verify contracts are still upheld
-    self.board_contract.check(self.black.posns)
-    self.board_contract.check(self.white.posns)
+    # self.board_contract.check(self.black.posns)
+    # self.board_contract.check(self.white.posns)
 
   # Querys the board and returns the number of pieces in a particular cpos
-  @contract(query='$Query')
+  @contract(query='$Query', returns='int')
   def query(self, query):
     posns = query.color.posns
     return posns.count(query.cpos)
-    
-  @contract(move='$Move')
+  
+  # returns whether or not the given move is a bop
+  @contract(move='$Move', returns='bool')
   def is_bop(self, move):
     player = move.color
     occupants = self.color_check(move.dest_cpos)
@@ -232,19 +240,21 @@ class Board(object):
   # Makes a single move
   @contract(move='$Move')
   def make_move(self, move):
-    posns = move.color.posns
+    color = self.get_color(move.color)
+    posns = color.posns
     posns.remove(move.source_cpos)
     posns.append(move.dest_cpos)
     self._sort_board()
 
     # verify contract is still upheld
-    self.board_contract.check(self.black.posns)
-    self.board_contract.check(self.white.posns)
+    # self.board_contract.check(self.black.posns)
+    # self.board_contract.check(self.white.posns)
 
   # Checks if there is a checker in the src position (given by the Move object)
   @contract(move='$Move', returns='bool')
   def src_exists(self, move):
-    posns = move.color.posns
+    color = self.get_color(move.color)
+    posns = color.posns
     if move.source_cpos in posns:
         return True
     else:
@@ -254,7 +264,7 @@ class Board(object):
   @contract(pos='CPos', returns='$Color|None')
   def color_check(self, pos):
     if pos in self.black.posns:
-        return self.black
+      return self.black
     elif pos in self.white.posns:
       return self.white
     else:
@@ -268,6 +278,7 @@ class Board(object):
         return False
     return True
 
+  # 
   @contract(move='$Move', dice='$Dice', returns='bool')
   def _bear_off(self, move, dice):
     player = move.color
@@ -292,23 +303,23 @@ class Board(object):
     num_opponents = self.query(query) if move.dest_cpos != HOME else 0
     dist = move.get_distance()
 
+    # if the player is trying to go home but cannot bear off, the move is invalid
     if move.dest_cpos == HOME and not self.can_bear_off(player): return False
     
     if dist in dice.combos() and num_opponents <= 1:
       return True
-    # Handle case where value of dice exceeds furthest checker
+    # Handle case where value of dice exceeds furthest checker that can bear off
     elif move.dest_cpos == HOME and self._bear_off(move, dice):
       return True
     else:
       return False
 
-  @contract(color='$Color', dice='$Dice', turn='ValidateTurn')
+  @contract(color='$Color', dice='$Dice', turn='ValidateTurn', returns='bool|*')
   def play_move(self, color, dice, turn):
     if not turn: valid_moves = self.get_possible_moves(color, dice)
-    original_combos = dice.combos()
     for move in turn:
       posns = color.posns
-      curr_move = move
+      last_move = move
       occupants_next_die = self.color_check(move.dest_cpos)
 
       valid_moves = self.get_possible_moves(color, dice)
@@ -322,19 +333,32 @@ class Board(object):
           return False
       else:
         return False
-      
-    # check if there are still moves possible
-    if valid_moves and not turn: return False
-    if valid_moves and dice.values:
-      for val in dice.values:
-        for move in valid_moves:
-          destination_next_die = color.get_destination(curr_move.dest_cpos, val)
-          destination_valid_move = color.get_destination(move[1], max(original_combos)-val)
-          if destination_next_die != destination_valid_move \
-          or (destination_valid_move == destination_next_die == HOME):
-              return False
-    return self
-  
+    
+    # If there are valid moves, but no turn, then the turn is invalid
+    if valid_moves and not turn: 
+      return False
+    # If there are valid moves and dice left over, check to see if more dice could have been used
+    elif valid_moves and dice.values and self._can_use_more_dice(last_move, valid_moves, dice):
+      return False
+    else:
+      return self
+
+  @contract(last_move='$Move', valid_moves='list($Move)', dice='$Dice', returns='bool')
+  def _can_use_more_dice(self, last_move, valid_moves, dice):
+    color = last_move.color
+    for val in dice.values:
+      for move in valid_moves:
+        move_dest = move[1]
+        # where we end up if we use the last die
+        destination_next_die = color.get_destination(last_move.dest_cpos, val)
+        # where we end up if we used the other dice values first
+        destination_valid_move = color.get_destination(move_dest, max(dice.original_combos)-val)
+        # if we end up in the same place, then we have no better move
+        # or, if we end up at home with dice left over, then we could have used those dice before bearing off
+        if destination_next_die != destination_valid_move \
+        or (destination_valid_move == destination_next_die == HOME): return True
+        else: return False
+
   @contract(move='$Move', color='$Color', dice='$Dice', occupants='$Color|None')
   def _play_move_helper(self, move, color, dice, occupants):
     dst = move.dest_cpos
@@ -377,22 +401,63 @@ class Board(object):
           valid_moves.append(move.as_list)
     return valid_moves
 # ============================================================================
-# class Player(object):
-#   def __init__(self, name):
-#     self.name = name
+class Player(object):
+  def __init__(self, name, color):
+    self.name = name
+    self.color = color
   
-#   @contract(color='Color', opponent_name='str')
-#   def start_game(color, opponent_name):
-#     print('The game has started!')
-#     print(f'Your color is {color}')
-#     print(f'Your opponent\'s name is {opponent_name}')
+  @contract(color='$Color', opponent_name='str')
+  def start_game(self, color, opponent_name):
+    print('The game has started!')
+    print(f'Your color is {color}')
+    print(f'Your opponent\'s name is {opponent_name}')
   
-#   @contract(board='$Board', dice='list', returns='list($Move)')
-#   def turn(board, dice):
-#     print('Take your turn.')
+  @contract(board='$Board', dice='list', returns='list($Move)')
+  def turn(self, board, dice):
+    print('Take your turn.')
 
-#   @contract(board='$Board', has_won='bool')
-#   def end_game(board, has_won):
-#     print('Game over!')
-#     result_msg = 'won!' if has_won else 'lost!'
-#     print(f'You have ' + result_msg)
+  @contract(board='$Board', has_won='bool')
+  def end_game(self, board, has_won):
+    print('Game over!')
+    result_msg = 'won!' if has_won else 'lost!'
+    print(f'You have ' + result_msg)
+
+class RandomPlayer(Player):
+  def __init__(self, name, color):
+    self.name = name
+    self.color = color
+
+  @contract(color='$Color', opponent_name='str')
+  def start_game(self, color, opponent_name):
+    print('The game has started!')
+    print(f'Your color is {self.color.name}')
+    print(f'Your opponent\'s name is {opponent_name}')
+  
+  @contract(board='$Board', dice='$Dice', returns='list(list[2](int|str))|bool')
+  def turn(self, board, dice):
+    board_copy = copy.deepcopy(board)
+    dice_copy = copy.deepcopy(dice)
+    color = board_copy.get_color(self.color)
+    print(self.name + ' is taking their turn')
+    random_turn = []
+    while dice_copy.values:
+      valid_moves = board_copy.get_possible_moves(color, dice_copy)
+      get_moves_from_turn(valid_moves, color)
+      valid_moves = create_moves(valid_moves)
+      if valid_moves:
+        random_move = random.choice(valid_moves)
+        distance = random_move.get_distance()
+        if distance in dice_copy.values:
+          dice_copy.values.remove(distance)
+        random_turn.append(random_move)
+        board_copy.make_move(random_move)
+      else: break
+    if board.play_move(self.color, dice, random_turn):
+      return [move.as_list for move in random_turn]
+    else: return False
+
+  @contract(board='$Board', has_won='bool')
+  def end_game(self, board, has_won):
+    print('Game over!')
+    result_msg = 'won!' if has_won else 'lost!'
+    print(f'You have ' + result_msg)
