@@ -215,7 +215,7 @@ class Board(object):
   # returns whether or not the given move is a bop
   @contract(move='$Move', returns='bool')
   def is_bop(self, move):
-    player = move.color
+    player = self.get_color(move.color)
     occupants = self.color_check(move.dest_cpos)
     if occupants is None: return False
     query = Query(occupants, move.dest_cpos)
@@ -281,10 +281,10 @@ class Board(object):
   # 
   @contract(move='$Move', dice='$Dice', returns='bool')
   def _bear_off(self, move, dice):
-    player = move.color
-    posns = player.posns
+    color = self.get_color(move.color)
+    posns = color.posns
     if max(dice.values) not in posns \
-    and move.source_cpos == player.farthest():
+    and move.source_cpos == color.farthest():
       return True
     else:
       return False
@@ -318,6 +318,7 @@ class Board(object):
   def play_move(self, color, dice, turn):
     if not turn: valid_moves = self.get_possible_moves(color, dice)
     for move in turn:
+      color = self.get_color(color)
       posns = color.posns
       last_move = move
       occupants_next_die = self.color_check(move.dest_cpos)
