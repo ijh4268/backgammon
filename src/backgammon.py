@@ -404,9 +404,8 @@ class Board(object):
 # ============================================================================
 class Player(object):
   def __init__(self, name, color):
-    self.name = name
-    self.color = color
-  
+    super().__init__(name, color)
+
   @contract(color='$Color', opponent_name='str')
   def start_game(self, color, opponent_name):
     print('The game has started!')
@@ -438,25 +437,39 @@ class RandomPlayer(Player):
   def turn(self, board, dice):
     board_copy = copy.deepcopy(board)
     dice_copy = copy.deepcopy(dice)
-    color = board_copy.get_color(self.color)
-    # print(self.name + ' is taking their turn')
-    random_turn = []
-    while dice_copy.values:
-      valid_moves = board_copy.get_possible_moves(color, dice_copy)
-      get_moves_from_turn(valid_moves, color)
-      valid_moves = create_moves(valid_moves)
-      if valid_moves:
-        random_move = random.choice(valid_moves)
-        distance = random_move.get_distance()
-        if distance in dice_copy.values:
-          dice_copy.values.remove(distance)
-        else: dice_copy.values.remove(max(dice_copy.values))
-        random_turn.append(random_move)
-        board_copy.make_move(random_move)
-      else: break
+    self.color = board_copy.get_color(self.color)
+    random_turn = self._try_random_moves(board_copy, dice_copy)
     if board.play_move(self.color, dice, random_turn):
       return [move.as_list for move in random_turn]
     else: return False
+
+  @contract(board='$Board', dice='$Dice')
+  def _try_random_moves(self, board, dice):
+    random_turn = []
+    while dice.values:
+      valid_moves = self._generate_valid_moves(board, dice)
+      if valid_moves:
+        random_move = self._get_random_move(valid_moves, dice)
+        random_turn.append(random_move)
+        board.make_move(random_move)
+      else: break
+    return random_turn
+  
+  @contract(board='$Board', dice='$Dice')
+  def _generate_valid_moves(self, board, dice):
+    valid_moves = board.get_possible_moves(self.color, dice)
+    get_moves_from_turn(valid_moves, self.color)
+    valid_moves = create_moves(valid_moves)
+    return valid_moves
+  
+  @contract(valid_moves='list($Move)', dice='$Dice')
+  def _get_random_move(self, valid_moves, dice):
+    random_move = random.choice(valid_moves)
+    distance = random_move.get_distance()
+    if distance in dice.values:
+      dice.values.remove(distance)
+    else: dice.values.remove(max(dice.values))
+    return random_move
 
   @contract(board='$Board', has_won='bool')
   def end_game(self, board, has_won):
