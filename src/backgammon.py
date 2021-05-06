@@ -4,8 +4,9 @@ from contracts.interface import ContractNotRespected
 from parse_data import get_moves_from_turn, create_moves
 from constants import *
 from contracts import contract, new_contract
+from copy import deepcopy
 from sort import sort
-import json, random, copy
+import json, random
 
 #---------------------------- Backgammon Contracts ---------------------------
 
@@ -435,13 +436,24 @@ class RandomPlayer(Player):
   
   @contract(board='$Board', dice='$Dice', returns='list(list[2](int|str))|bool')
   def turn(self, board, dice):
-    board_copy = copy.deepcopy(board)
-    dice_copy = copy.deepcopy(dice)
+    board_copy = deepcopy(board)
+    dice_copy = deepcopy(dice)
+    board_reset = deepcopy(board)
+    dice_reset = deepcopy(dice)
     self.color = board_copy.get_color(self.color)
-    random_turn = self._try_random_moves(board_copy, dice_copy)
-    if board.play_move(self.color, dice, random_turn):
-      return [move.as_list for move in random_turn]
-    else: return False
+    while True:
+      try:
+        random_turn = self._try_random_moves(board_copy, dice_copy)
+        assert board.play_move(self.color, dice, random_turn)
+        return [move.as_list for move in random_turn]
+      except AssertionError:
+        board = deepcopy(board_reset) 
+        board_copy = deepcopy(board_reset)
+        dice = deepcopy(dice_reset)
+        dice_copy = deepcopy(dice_reset)
+        self.color = board_copy.get_color(self.color)
+        continue
+    
 
   @contract(board='$Board', dice='$Dice')
   def _try_random_moves(self, board, dice):
