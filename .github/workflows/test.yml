@@ -12,7 +12,7 @@ jobs:
 
     env:
 
-      MAJOR: 6
+      MAJOR: 5
 
       MINOR: 1
 
@@ -44,4 +44,4 @@ jobs:
 
       - name: Run tests
 
-        run: racket -O "$LOGLEVEL"@fest -W none -l software-construction-admin -- -M $MAJOR -m $MINOR -n "$TEAM" -v
+        run: racket -O "$LOGLEVEL"@fest -W none -l software-construction-admin -- -M $MAJOR -m $MINOR -n "$TEAM" 
