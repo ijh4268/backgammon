@@ -407,31 +407,14 @@ class Player(object):
   def __init__(self, name, color):
     self.name = name
     self.color = color
+    self.started = False
 
   @contract(color='$Color', opponent_name='str')
   def start_game(self, color, opponent_name):
+    if not self.started: self.started = True
+    else: raise RuntimeError('start_game was called before ')
     print('The game has started!')
     print(f'Your color is {color}')
-    print(f'Your opponent\'s name is {opponent_name}')
-  
-  @contract(board='$Board', dice='list', returns='list($Move)')
-  def turn(self, board, dice):
-    print('Take your turn.')
-
-  @contract(board='$Board', has_won='bool')
-  def end_game(self, board, has_won):
-    print('Game over!')
-    result_msg = 'won!' if has_won else 'lost!'
-    print(f'You have ' + result_msg)
-
-class RandomPlayer(Player):
-  def __init__(self, name, color):
-    super().__init__(name, color)
-
-  @contract(color='$Color', opponent_name='str')
-  def start_game(self, color, opponent_name):
-    print('The game has started!')
-    print(f'Your color is {self.color.name}')
     print(f'Your opponent\'s name is {opponent_name}')
   
   @contract(board='$Board', dice='$Dice', returns='list(list[2](int|str))|bool')
@@ -453,28 +436,39 @@ class RandomPlayer(Player):
         dice_copy = deepcopy(dice_reset)
         self.color = board_copy.get_color(self.color)
         continue
-  
-  @contract(board='$Board', dice='$Dice')
-  def _try_random_moves(self, board, dice):
-    random_turn = []
-    while dice.values:
-      valid_moves = self._generate_valid_moves(board, dice)
-      if valid_moves:
-        random_move = self._get_move(valid_moves, dice)
-        random_turn.append(random_move)
-        board.make_move(random_move)
-      else: break
-    return random_turn
-  
+
   @contract(board='$Board', dice='$Dice')
   def _generate_valid_moves(self, board, dice):
     valid_moves = board.get_possible_moves(self.color, dice)
     get_moves_from_turn(valid_moves, self.color)
     valid_moves = create_moves(valid_moves)
     return valid_moves
+
+  @contract(board='$Board', dice='$Dice')
+  def _try_moves(self, board, dice):
+    turn = []
+    while dice.values:
+      valid_moves = self._generate_valid_moves(board, dice)
+      if valid_moves:
+        move = self._get_move(valid_moves, board, dice)
+        turn.append(move)
+        board.make_move(move)
+      else: break
+    return turn
+
+  @contract(board='$Board', has_won='bool')
+  def end_game(self, board, has_won):
+    self.started = False
+    print('Game over!')
+    result_msg = 'won!' if has_won else 'lost!'
+    print(f'You have ' + result_msg)
+
+class RandomPlayer(Player):
+  def __init__(self, name, color):
+    super().__init__(name, color)
   
-  @contract(valid_moves='list($Move)', dice='$Dice')
-  def _get_random_move(self, valid_moves, dice):
+  @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
+  def _get_move(self, valid_moves, board, dice):
     random_move = random.choice(valid_moves)
     distance = random_move.get_distance()
     if distance in dice.values:
@@ -482,48 +476,9 @@ class RandomPlayer(Player):
     else: dice.values.remove(max(dice.values))
     return random_move
 
-  @contract(board='$Board', has_won='bool')
-  def end_game(self, board, has_won):
-    print('Game over!')
-    result_msg = 'won!' if has_won else 'lost!'
-    print(f'You have ' + result_msg)
-
 class BopPlayer(Player):
   def __init__(self, name, color):
     super().__init__(name, color)
-
-  @contract(color='$Color', opponent_name='str')
-  def start_game(self, color, opponent_name):
-    print('The game has started!')
-    print(f'Your color is {self.color.name}')
-    print(f'Your opponent\'s name is {opponent_name}')
-    
-  @contract(board='$Board', dice='$Dice', returns='list(list[2](int|str))|bool')
-  def turn(self, board, dice):
-    board_copy = deepcopy(board)
-    dice_copy = deepcopy(dice)
-    board_reset = deepcopy(board)
-    dice_reset = deepcopy(dice)
-    self.color = board_copy.get_color(self.color)
-    while True:
-      try:
-        turn = self._try_moves(board_copy, dice_copy)
-        assert board.play_move(self.color, dice, turn)
-        return [move.as_list for move in turn]
-      except AssertionError:
-        board = deepcopy(board_reset) 
-        board_copy = deepcopy(board_reset)
-        dice = deepcopy(dice_reset)
-        dice_copy = deepcopy(dice_reset)
-        self.color = board_copy.get_color(self.color)
-        continue
-
-  @contract(board='$Board', dice='$Dice')
-  def _generate_valid_moves(self, board, dice):
-    valid_moves = board.get_possible_moves(self.color, dice)
-    get_moves_from_turn(valid_moves, self.color)
-    valid_moves = create_moves(valid_moves)
-    return valid_moves
 
   @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
   def _get_move(self, valid_moves, board, dice):
@@ -541,21 +496,3 @@ class BopPlayer(Player):
       dice.values.remove(distance)
     else: dice.values.remove(max(dice.values))
     return result
-
-  @contract(board='$Board', dice='$Dice')
-  def _try_moves(self, board, dice):
-    turn = []
-    while dice.values:
-      valid_moves = self._generate_valid_moves(board, dice)
-      if valid_moves:
-        move = self._get_move(valid_moves, board, dice)
-        turn.append(move)
-        board.make_move(move)
-      else: break
-    return turn
-
-  @contract(board='$Board', has_won='bool')
-  def end_game(self, board, has_won):
-    print('Game over!')
-    result_msg = 'won!' if has_won else 'lost!'
-    print(f'You have ' + result_msg)

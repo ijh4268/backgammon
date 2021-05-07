@@ -17,3 +17,6 @@ WHITE_HOME = 25
 
 BLACK_HOME_QUAD = range(1, 7)
 WHITE_HOME_QUAD = range(19, 25)
+
+HOST = 'host'
+PORT = 'port'
