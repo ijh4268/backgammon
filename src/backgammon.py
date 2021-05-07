@@ -447,15 +447,12 @@ class RandomPlayer(Player):
         assert board.play_move(self.color, dice, random_turn)
         return [move.as_list for move in random_turn]
       except AssertionError:
-        self._reset_turn(board, board_copy, dice, dice_copy, self.color, board_reset, dice_reset)
+        board = deepcopy(board_reset) 
+        board_copy = deepcopy(board_reset)
+        dice = deepcopy(dice_reset)
+        dice_copy = deepcopy(dice_reset)
+        self.color = board_copy.get_color(self.color)
         continue
-
-  def _reset_turn(self, board, board_copy, dice, dice_copy, color, board_reset, dice_reset):
-    board = deepcopy(board_reset) 
-    board_copy = deepcopy(board_reset)
-    dice = deepcopy(dice_reset)
-    dice_copy = deepcopy(dice_reset)
-    self.color = board_copy.get_color(self.color)
   
   @contract(board='$Board', dice='$Dice')
   def _try_random_moves(self, board, dice):
@@ -514,15 +511,12 @@ class BopPlayer(Player):
         assert board.play_move(self.color, dice, turn)
         return [move.as_list for move in turn]
       except AssertionError:
-        self._reset_turn(board, board_copy, dice, dice_copy, self.color, board_reset, dice_reset)
+        board = deepcopy(board_reset) 
+        board_copy = deepcopy(board_reset)
+        dice = deepcopy(dice_reset)
+        dice_copy = deepcopy(dice_reset)
+        self.color = board_copy.get_color(self.color)
         continue
-
-  def _reset_turn(self, board, board_copy, dice, dice_copy, color, board_reset, dice_reset):
-    board = deepcopy(board_reset) 
-    board_copy = deepcopy(board_reset)
-    dice = deepcopy(dice_reset)
-    dice_copy = deepcopy(dice_reset)
-    self.color = board_copy.get_color(self.color)
 
   @contract(board='$Board', dice='$Dice')
   def _generate_valid_moves(self, board, dice):
@@ -537,9 +531,16 @@ class BopPlayer(Player):
     for move in valid_moves:
       if board.is_bop(move):
         result = move
-      else:
+        distance = moves_distances[result]
+      elif len(list(set(list(moves_distances.values())))) != 1:
         result = max(moves_distances, key=moves_distances.get)
-      dice.values.remove(moves_distances[result])
+        distance = moves_distances[result]
+      else:
+        result = random.choice(valid_moves)
+        distance = moves_distances[result]
+      if distance in dice.values:
+        dice.values.remove(distance)
+      else: dice.values.remove(max(dice.values))
       return result
 
   @contract(board='$Board', dice='$Dice')
