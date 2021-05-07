@@ -3,4 +3,4 @@
 # This is the file "run": it runs the actual submission
 
 cd ../../../src
-python random_player_tester.py
+python bop_player_tester.py
