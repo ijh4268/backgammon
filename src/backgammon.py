@@ -532,11 +532,10 @@ class BopPlayer(Player):
     for move in valid_moves:
       if board.is_bop(move):
         result = move
-    if (len(moves_distances) == 1 \
-    or len(list(set(list(moves_distances.values())))) != 1) \
-    and not result:
+    if not result:
       result = max(moves_distances, key=moves_distances.get)
-      if result.dest_cpos == HOME: result = random.choice(valid_moves)
+      if list(moves_distances.values()).count(moves_distances[result]) == len(moves_distances) or \
+      result.dest_cpos == HOME: result = random.choice(valid_moves)
     distance = moves_distances[result]
     if distance in dice.values:
       dice.values.remove(distance)
