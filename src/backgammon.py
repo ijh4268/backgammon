@@ -528,20 +528,20 @@ class BopPlayer(Player):
   @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
   def _get_move(self, valid_moves, board, dice):
     moves_distances = {move: move.get_distance() for move in valid_moves}
+    result = None
     for move in valid_moves:
       if board.is_bop(move):
         result = move
-        distance = moves_distances[result]
-      elif len(list(set(list(moves_distances.values())))) != 1:
-        result = max(moves_distances, key=moves_distances.get)
-        distance = moves_distances[result]
-      else:
-        result = random.choice(valid_moves)
-        distance = moves_distances[result]
-      if distance in dice.values:
-        dice.values.remove(distance)
-      else: dice.values.remove(max(dice.values))
-      return result
+    if (len(moves_distances) == 1 \
+    or len(list(set(list(moves_distances.values())))) != 1) \
+    and not result:
+      result = max(moves_distances, key=moves_distances.get)
+      if result.dest_cpos == HOME: result = random.choice(valid_moves)
+    distance = moves_distances[result]
+    if distance in dice.values:
+      dice.values.remove(distance)
+    else: dice.values.remove(max(dice.values))
+    return result
 
   @contract(board='$Board', dice='$Dice')
   def _try_moves(self, board, dice):
