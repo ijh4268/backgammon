@@ -17,7 +17,7 @@ s.connect((host, TCP_PORT))
 
 name = s.recv(1024).decode()
 player = bg.RandomPlayer(name)
-player_name_json = json.dumps(player.name)
+player_name_json = json.dumps({'name': player.name})
 s.send(player_name_json.encode())
 
 # start_game = json.loads(s.recv(1024).decode())
