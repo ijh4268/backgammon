@@ -413,7 +413,7 @@ class Player(object):
     if not self.started: self.started = True
     else: raise RuntimeError('start_game was called before ')
     print('The game has started!')
-    self.color =
+    self.color = color
     print(f'Your color is {color}')
     self.opponent = opponent_name
     print(f'Your opponent\'s name is {opponent_name}')
