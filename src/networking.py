@@ -20,14 +20,14 @@ name = s.recv(1024)
 player = RandomPlayer(name)
 s.sendall(player.name.encode())
 
-start_game = s.recv(1024)
-take_turn = s.recv(1024)
-end_game = s.recv(1024)
+# start_game = s.recv(1024)
+# take_turn = s.recv(1024)
+# end_game = s.recv(1024)
 
-print(name.decode())
-print(start_game.decode())
-print(take_turn.decode())
-print(end_game.decode())
+# print(name.decode())
+# print(start_game.decode())
+# print(take_turn.decode())
+# print(end_game.decode())
 
 s.close()
 # if data == "name":
