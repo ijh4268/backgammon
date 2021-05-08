@@ -15,7 +15,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 host = socket.gethostbyname(TCP_IP)
 
 s.connect((host, TCP_PORT))
-data = s.recv(1024).decode()
+data = json.loads(s.recv(1024).decode())
 
 while data:
   if data == 'name':
