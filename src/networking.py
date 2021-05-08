@@ -20,15 +20,18 @@ player = bg.RandomPlayer(name)
 player_name_json = json.dumps({'name': player.name})
 s.send(player_name_json.encode())
 
-# start_game = json.loads(s.recv(1024).decode())
+start_game = json.loads(s.recv(1024).decode())['start_game']
+color = start_game[0]
+opponent = start_game[1]
+try:
+  player.start_game(color, opponent)
+  s.send(json.dumps('okay').encode())
+except Exception as e:
+  raise e
 
-# take_turn = json.loads(s.recv(1024).decode())
-# end_game = json.loads(s.recv(1024).decode())
+take_turn = json.loads(s.recv(1024).decode())
+end_game = json.loads(s.recv(1024).decode())
 
-# print(name.decode())
-# print(start_game.decode())
-# print(take_turn.decode())
-# print(end_game.decode())
 
 s.close()
 # if data == "name":
