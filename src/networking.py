@@ -15,9 +15,15 @@ host = socket.gethostbyname(TCP_IP)
 
 s.connect((host, TCP_PORT))
 
-data = s.recv(1024)
+name = s.recv(1024)
+start_game = s.recv(1024)
+take_turn = s.recv(1024)
+end_game = s.recv(1024)
 
-print(data.decode())
+print(name.decode())
+print(start_game.decode())
+print(take_turn.decode())
+print(end_game.decode())
 
 s.close()
 # if data == "name":
