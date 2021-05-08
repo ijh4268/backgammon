@@ -406,16 +406,18 @@ class Board(object):
 class Player(object):
   def __init__(self, name):
     self.name = name
-    self.color = None
     self.started = False
+    self.color
+    self.opponent
 
-  @contract(color='$Color', opponent_name='str')
+  @contract(color='str', opponent_name='str')
   def start_game(self, color, opponent_name):
     if not self.started: self.started = True
     else: raise RuntimeError('start_game was called before ')
     print('The game has started!')
     self.color = color
     print(f'Your color is {color}')
+    self.opponent = opponent_name
     print(f'Your opponent\'s name is {opponent_name}')
   
   @contract(board='$Board', dice='$Dice', returns='list(list[2](int|str))|bool')

@@ -17,11 +17,13 @@ s.connect((host, TCP_PORT))
 
 name = s.recv(1024).decode()
 player = bg.RandomPlayer(name)
-s.send(player.name.encode())
+player_name_json = json.dumps(player.name)
+s.send(player_name_json)
 
-# start_game = s.recv(1024)
-# take_turn = s.recv(1024)
-# end_game = s.recv(1024)
+# start_game = json.loads(s.recv(1024).decode())
+
+# take_turn = json.loads(s.recv(1024).decode())
+# end_game = json.loads(s.recv(1024).decode())
 
 # print(name.decode())
 # print(start_game.decode())
