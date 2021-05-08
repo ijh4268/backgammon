@@ -4,7 +4,7 @@ from parse_json import parse_json
 from contracts import contract
 import sys
 
-data = parse_json()[0]
+# data = parse_json()[0]
 
 def parse_board(data):
   # get return type to call appropriate helper function

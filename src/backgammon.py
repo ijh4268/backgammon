@@ -465,8 +465,8 @@ class Player(object):
     print(f'You have ' + result_msg)
 
 class RandomPlayer(Player):
-  def __init__(self, name, color):
-    super().__init__(name, color)
+  def __init__(self, name):
+    super().__init__(name)
   
   @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
   def _get_move(self, valid_moves, board, dice):
@@ -478,8 +478,8 @@ class RandomPlayer(Player):
     return random_move
 
 class BopPlayer(Player):
-  def __init__(self, name, color):
-    super().__init__(name, color)
+  def __init__(self, name):
+    super().__init__(name)
 
   @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
   def _get_move(self, valid_moves, board, dice):

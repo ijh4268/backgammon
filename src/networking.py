@@ -1,9 +1,8 @@
+from constants import *
+import backgammon as bg
 import socket
 import sys
 import json
-from backgammon import RandomPlayer
-from parse_json import parse_json
-from constants import *
 
 # Take the JSON object 'network-config' and extract the "host" (string, goes to TCP_IP) and the "port" (number, goes to TCP_PORT)
 network_config = json.loads(sys.stdin.readline())
@@ -16,8 +15,8 @@ host = socket.gethostbyname(TCP_IP)
 
 s.connect((host, TCP_PORT))
 
-name = s.recv(1024)
-player = RandomPlayer(name)
+name = s.recv(1024).decode()
+player = bg.RandomPlayer(name)
 s.send(player.name.encode())
 
 # start_game = s.recv(1024)
