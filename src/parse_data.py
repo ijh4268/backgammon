@@ -54,11 +54,7 @@ def handle_board(data):
 
 # ------------------- Data Methods -------------------
 
-def get_board(data, return_type=None):
-  if return_type is not None:
-    board = data[return_type][0]
-  else:
-    board = data[0]
+def get_board(board, return_type=None):
   white_checkers = board[WHITE]
   black_checkers = board[BLACK]
   return bg.Board(black_checkers, white_checkers)
@@ -73,17 +69,17 @@ def get_moves_from_turn(turn, color):
     move.insert(0, color) 
 
 @contract(data='list')
-def get_color(data, board):
-  if data[1] == BLACK:
+def get_color(color, board):
+  if color == BLACK:
     return board.black
-  elif data[1] == WHITE: 
+  elif color == WHITE: 
     return board.white
   else:
     raise('Invalid color input!')
 
 @contract(data='list')
-def get_dice(data):
-  return bg.Dice(data[1])
+def get_dice(values):
+  return bg.Dice(values)
 
 @contract(data='list', returns='list(list[2](int|str))')
 def get_turn(data):

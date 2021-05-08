@@ -1,6 +1,6 @@
 from constants import *
 import backgammon as bg
-from parse_data import get_board, get_dice
+from parse_data import get_board, get_dice, get_color
 import socket
 import sys
 import json
@@ -36,6 +36,7 @@ while data:
   elif type(data) == dict and 'take-turn' in data.keys():
     turn = data['take-turn']
     board = get_board(turn)
+    player.color = get_color(player.color, board)
     dice = get_dice(turn)
     result = player.turn(board, dice)
     s.send(json.dumps({'turn': result}).encode() + '\n'.encode())
