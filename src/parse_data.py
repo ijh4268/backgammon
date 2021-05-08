@@ -68,7 +68,7 @@ def get_moves_from_turn(turn, color):
   for move in turn:
     move.insert(0, color) 
 
-@contract(data='list')
+@contract(data='str')
 def get_color(color, board):
   if color == BLACK:
     return board.black
