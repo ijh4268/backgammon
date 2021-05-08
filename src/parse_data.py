@@ -83,7 +83,7 @@ def get_color(data, board):
 
 @contract(data='list')
 def get_dice(data):
-  return bg.Dice(data[2])
+  return bg.Dice(data[1])
 
 @contract(data='list', returns='list(list[2](int|str))')
 def get_turn(data):
