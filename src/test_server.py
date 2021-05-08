@@ -30,7 +30,8 @@ while True:
   print ('Got connection from', addr )
     
   # send a thank you message to the client. 
-  c.send(bytes('Thank you for connecting'.encode())) 
+  c.send('{"start-game":["white","oracle for 6.1"]}'.encode()) 
     
+  print(c.recv(1024).decode())
   # Close the connection with the client 
   c.close() 
