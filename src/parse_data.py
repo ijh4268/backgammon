@@ -53,7 +53,7 @@ def handle_board(data):
   sys.stdout.write(board_json)
 
 # ------------------- Data Methods -------------------
-
+@contract(board='dict')
 def get_board(board, return_type=None):
   white_checkers = board[WHITE]
   black_checkers = board[BLACK]

@@ -35,9 +35,9 @@ while data:
       raise e
   elif type(data) == dict and 'take-turn' in data.keys():
     turn = data['take-turn']
-    board = get_board(turn)
+    board = get_board(turn[0])
     player.color = get_color(player.color, board)
-    dice = get_dice(turn)
+    dice = get_dice(turn[1])
     result = player.turn(board, dice)
     s.send(json.dumps({'turn': result}).encode() + '\n'.encode())
   elif type(data) == dict and 'end-game' in data.keys():
