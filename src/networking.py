@@ -22,7 +22,7 @@ while data:
     player = bg.RandomPlayer(data)
     player_name_json = json.dumps({'name': player.name})
     s.send(player_name_json.encode() + '\n'.encode())
-  if type(data) == dict and 'start-game' in data.keys():
+  elif type(data) == dict and 'start-game' in data.keys():
     start_game = data['start-game']
     color = start_game[0]
     opponent = start_game[1]
