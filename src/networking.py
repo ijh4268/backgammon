@@ -19,7 +19,7 @@ data = json.loads(s.recv(1024).decode())
 
 while data:
   if data == 'name':
-    player = bg.RandomPlayer(data)
+    player = bg.BopPlayer(data)
     player_name_json = json.dumps({'name': player.name})
     s.send(player_name_json.encode() + '\n'.encode())
   elif type(data) == dict and 'start-game' in data.keys():
