@@ -6,7 +6,7 @@ from parse_json import parse_json
 from constants import *
 
 # Take the JSON object 'network-config' and extract the "host" (string, goes to TCP_IP) and the "port" (number, goes to TCP_PORT)
-network_config = json.loads(sys.stdin.readline())
+network_config = json.load(sys.stdin.readline())
 
 TCP_IP = network_config[HOST]
 TCP_PORT = network_config[PORT]
@@ -18,7 +18,7 @@ s.connect((host, TCP_PORT))
 
 name = s.recv(1024)
 player = RandomPlayer(name)
-s.sendall(player.name.encode())
+s.send(player.name.encode())
 
 # start_game = s.recv(1024)
 # take_turn = s.recv(1024)
