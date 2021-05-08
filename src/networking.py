@@ -21,7 +21,7 @@ while data:
   if data == 'name':
     player = bg.RandomPlayer(data)
     player_name_json = json.dumps({'name': player.name})
-    s.send(player_name_json.encode())
+    s.send(player_name_json.encode() + '\n'.encode())
   elif type(data) == dict and 'start-game' in data.keys():
     start_game = data['start-game']
     color = start_game[0]
@@ -30,7 +30,7 @@ while data:
       player.start_game(color, opponent)
       assert player.color == color
       assert player.opponent == opponent
-      s.send(json.dumps('okay').encode())
+      s.send(json.dumps('okay').encode() + '\n'.encode())
     except AssertionError as e:
       raise e
   elif type(data) == dict and 'take-turn' in data.keys():
@@ -38,7 +38,7 @@ while data:
     board = get_board(turn[0])
     dice = get_dice(turn[1])
     result = player.turn(board, dice)
-    s.send(json.dumps({'turn': result}).encode())
+    s.send(json.dumps({'turn': result}).encode() + '\n'.encode())
   elif type(data) == dict and 'end-game' in data.keys():
     end_game = data['end-game']
     final_board = get_board(end_game[0])
@@ -47,7 +47,7 @@ while data:
       player.end_game(final_board, has_won)
       assert player.final_board == final_board
       assert player.has_won == has_won
-      s.send(json.dumps('okay').encode())
+      s.send(json.dumps('okay').encode() + '\n'.encode())
     except AssertionError as e:
       raise e
   data = s.recv(1024).decode()
