@@ -38,7 +38,7 @@ while True:
     board = get_board(turn[0])
     dice = get_dice(turn[1])
     result = player.turn(board, dice)
-    s.send(json.dumps(result).encode())
+    s.send(json.dumps({'turn': result}).encode())
   elif type(data) == dict and 'end-game' in data.keys():
     end_game = data['end-game']
     final_board = get_board(end_game[0])
@@ -50,7 +50,7 @@ while True:
       s.send(json.dumps('okay').encode())
     except AssertionError as e:
       raise e
-      
+
 # if data == "name":
 #     print(player.name) # idk how the player class fits into here, i guess we have to adjust the class and methods in backgammon.py
 # elif 'start-game' in data:
