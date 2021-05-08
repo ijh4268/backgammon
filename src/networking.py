@@ -22,7 +22,7 @@ while data:
     player = bg.RandomPlayer(data)
     player_name_json = json.dumps({'name': player.name})
     s.send(player_name_json.encode() + '\n'.encode())
-  elif type(data) == dict and 'start-game' in data.keys():
+  if type(data) == dict and 'start-game' in data.keys():
     start_game = data['start-game']
     color = start_game[0]
     opponent = start_game[1]
@@ -50,5 +50,5 @@ while data:
       s.send(json.dumps('okay').encode() + '\n'.encode())
     except AssertionError as e:
       raise e
-  data = s.recv(1024).decode()
+  data = json.loads(s.recv(1024).decode())
 else: s.close()
