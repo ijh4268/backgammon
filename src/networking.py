@@ -17,7 +17,7 @@ host = socket.gethostbyname(TCP_IP)
 s.connect((host, TCP_PORT))
 
 while True:
-  data = json.loads(s.recv(1024).decode())
+  data = s.recv(1024).decode()
   if data == 'name':
     player = bg.RandomPlayer(data)
     player_name_json = json.dumps({'name': player.name})
