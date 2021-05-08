@@ -1,5 +1,6 @@
 from constants import *
 import backgammon as bg
+from parse_data import get_board, get_dice
 import socket
 import sys
 import json
@@ -15,25 +16,42 @@ host = socket.gethostbyname(TCP_IP)
 
 s.connect((host, TCP_PORT))
 
-name = s.recv(1024).decode()
-player = bg.RandomPlayer(name)
-player_name_json = json.dumps({'name': player.name})
-s.send(player_name_json.encode())
+while True:
+  data = json.loads(s.recv(1024).decode())
+  if data == 'name':
+    player = bg.RandomPlayer(data)
+    player_name_json = json.dumps({'name': player.name})
+    s.send(player_name_json.encode())
+  elif type(data) == dict and 'start-game' in data.keys():
+    start_game = data['start-game']
+    color = start_game[0]
+    opponent = start_game[1]
+    try:
+      player.start_game(color, opponent)
+      assert player.color == color
+      assert player.opponent == opponent
+      s.send(json.dumps('okay').encode())
+    except AssertionError as e:
+      raise e
+  elif type(data) == dict and 'take-turn' in data.keys():
+    turn = data['take-turn']
+    board = get_board(turn[0])
+    dice = get_dice(turn[1])
+    result = player.turn(board, dice)
+    s.send(json.dumps(result).encode())
+  elif type(data) == dict and 'end-game' in data.keys():
+    end_game = data['end-game']
+    final_board = get_board(end_game[0])
+    has_won = end_game[1]
+    try:
+      player.end_game(final_board, has_won)
+      assert player.final_board == final_board
+      assert player.has_won == has_won
+      s.send(json.dumps('okay').encode())
+    except AssertionError as e:
+      raise e
 
-start_game = json.loads(s.recv(1024).decode())['start_game']
-color = start_game[0]
-opponent = start_game[1]
-try:
-  player.start_game(color, opponent)
-  s.send(json.dumps('okay').encode())
-except Exception as e:
-  raise e
-
-take_turn = json.loads(s.recv(1024).decode())
-end_game = json.loads(s.recv(1024).decode())
-
-
-s.close()
+  s.close()
 # if data == "name":
 #     print(player.name) # idk how the player class fits into here, i guess we have to adjust the class and methods in backgammon.py
 # elif 'start-game' in data:

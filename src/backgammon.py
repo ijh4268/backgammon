@@ -461,6 +461,8 @@ class Player(object):
   def end_game(self, board, has_won):
     self.started = False
     print('Game over!')
+    self.has_won = has_won
+    self.final_board = board
     result_msg = 'won!' if has_won else 'lost!'
     print(f'You have ' + result_msg)
 
