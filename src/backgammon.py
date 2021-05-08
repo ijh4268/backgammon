@@ -404,9 +404,9 @@ class Board(object):
     return valid_moves
 # ============================================================================
 class Player(object):
-  def __init__(self, name, color):
+  def __init__(self, name):
     self.name = name
-    self.color = color
+    self.color = None
     self.started = False
 
   @contract(color='$Color', opponent_name='str')
@@ -414,6 +414,7 @@ class Player(object):
     if not self.started: self.started = True
     else: raise RuntimeError('start_game was called before ')
     print('The game has started!')
+    self.color = color
     print(f'Your color is {color}')
     print(f'Your opponent\'s name is {opponent_name}')
   

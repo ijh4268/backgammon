@@ -1,6 +1,7 @@
 import socket
 import sys
 import json
+from backgammon import RandomPlayer
 from parse_json import parse_json
 from constants import *
 
@@ -16,6 +17,9 @@ host = socket.gethostbyname(TCP_IP)
 s.connect((host, TCP_PORT))
 
 name = s.recv(1024)
+player = RandomPlayer(name)
+s.sendall(player.name.encode())
+
 start_game = s.recv(1024)
 take_turn = s.recv(1024)
 end_game = s.recv(1024)
