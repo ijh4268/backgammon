@@ -50,8 +50,7 @@ while True:
       s.send(json.dumps('okay').encode())
     except AssertionError as e:
       raise e
-
-s.close()
+      
 # if data == "name":
 #     print(player.name) # idk how the player class fits into here, i guess we have to adjust the class and methods in backgammon.py
 # elif 'start-game' in data:
