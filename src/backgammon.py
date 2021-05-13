@@ -183,7 +183,6 @@ class Board(object):
       self.white_posns = White()
       
     self.special_feature = 'board'
-    self.board_contract = new_contract('board', 'list[15](int|str)')
 
   def to_json(self):
     return json.dumps({BLACK:self.black.posns, WHITE:self.white.posns})
@@ -197,15 +196,11 @@ class Board(object):
     elif color.name() == WHITE: return self.white
     else: raise ContractNotRespected
 
-
   # Makes a sequence of moves
   @contract(moves='list($Move)')
   def make_moves(self, moves):
     for move in moves:
       self.make_move(move)
-    # verify contracts are still upheld
-    # self.board_contract.check(self.black.posns)
-    # self.board_contract.check(self.white.posns)
 
   # Querys the board and returns the number of pieces in a particular cpos
   @contract(query='$Query', returns='int')
@@ -246,10 +241,6 @@ class Board(object):
     posns.remove(move.source_cpos)
     posns.append(move.dest_cpos)
     self._sort_board()
-
-    # verify contract is still upheld
-    # self.board_contract.check(self.black.posns)
-    # self.board_contract.check(self.white.posns)
 
   # Checks if there is a checker in the src position (given by the Move object)
   @contract(move='$Move', returns='bool')
@@ -294,7 +285,6 @@ class Board(object):
   # checks if the given move is valid given the dice
   @contract(move='$Move', dice='$Dice', returns='bool')
   # Have variable to determine direction of travel, then multiply by dice value (get rid of add/sub)
-  # TODO: Refactor to remove copied code (visitor classes?, helper functions?, loops?)
   def is_valid_move(self, move, dice):
     player = move.color
     if not player.correct_dir(move): return False
@@ -431,6 +421,7 @@ class Player(object):
         assert board.play_move(self.color, dice, random_turn)
         return [move.as_list for move in random_turn]
       except AssertionError:
+        # reset the board if the turn is not valid and try again
         board = deepcopy(board_reset) 
         board_copy = deepcopy(board_reset)
         dice = deepcopy(dice_reset)
@@ -492,8 +483,8 @@ class BopPlayer(Player):
         result = move
     if not result:
       result = max(moves_distances, key=moves_distances.get)
-      if list(moves_distances.values()).count(moves_distances[result]) == len(moves_distances) or \
-      result.dest_cpos == HOME: result = random.choice(valid_moves)
+      if list(moves_distances.values()).count(moves_distances[result]) == len(moves_distances) \
+      or result.dest_cpos == HOME: result = random.choice(valid_moves)
     distance = moves_distances[result]
     if distance in dice.values:
       dice.values.remove(distance)
