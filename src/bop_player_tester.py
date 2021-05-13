@@ -15,8 +15,6 @@ bop_player.color = color
 turn = bop_player.turn(board, dice)
 
 turn = json.dumps(turn)
-board_print = board.to_json()
 
 sys.stdout.flush()
 sys.stdout.write(turn)
-sys.stdout.write(board_print)

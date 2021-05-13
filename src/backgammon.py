@@ -396,7 +396,7 @@ class Player(object):
   def __init__(self, name):
     self.name = name
     self.started = False
-    self.color
+    self.color = None
 
   @contract(color='str', opponent_name='str')
   def start_game(self, color, opponent_name):
