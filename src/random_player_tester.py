@@ -1,16 +1,16 @@
 import backgammon as bg
 from parse_data import *
 from parse_json import parse_json
-from contracts import ContractException
-import sys, json, copy
+import sys, json
 
 data = parse_json()[0]
 
-board = get_board(data)
-color = get_color(data, board)
-dice = get_dice(data)
+board = get_board(data[0])
+color = get_color(data[1], board)
+dice = get_dice(data[2])
 
-random_player = bg.RandomPlayer('random', color)
+random_player = bg.RandomPlayer('random')
+random_player.color = color
 
 turn = random_player.turn(board, dice)
 if turn == False: 

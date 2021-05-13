@@ -8,49 +8,64 @@ import json
 # Take the JSON object 'network-config' and extract the "host" (string, goes to TCP_IP) and the "port" (number, goes to TCP_PORT)
 network_config = json.loads(sys.stdin.readline())
 
-TCP_IP = network_config[HOST]
-TCP_PORT = network_config[PORT]
+host = network_config[HOST]
+port = network_config[PORT]
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-host = socket.gethostbyname(TCP_IP)
+def initialize_network(host, port):
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  host = socket.gethostbyname(host)
+  s.connect((host, port))
+  return s
 
-s.connect((host, TCP_PORT))
+s = initialize_network(host, port)
 
 data = json.loads(s.recv(1024).decode())
 
+def handle_name(server, data):
+  player = bg.BopPlayer(data)
+  player_name_json = json.dumps({'name': player.name})
+  server.send(player_name_json.encode() + '\n'.encode())
+  return player
+
+def handle_start_game(server, data, player):
+  start_game = data['start-game']
+  color = start_game[0]
+  opponent = start_game[1]
+  try:
+    player.start_game(color, opponent)
+    assert player.color == color
+    assert player.opponent == opponent
+    server.send(json.dumps('okay').encode() + '\n'.encode())
+  except AssertionError as e:
+    raise e
+
+def handle_turn(server, data, player):
+  turn = data['take-turn']
+  board = get_board(turn[0])
+  player.color = get_color(player.color, board)
+  dice = get_dice(turn[1])
+  result = player.turn(board, dice)
+  server.send(json.dumps({'turn': result}).encode() + '\n'.encode())
+
+def handle_end_game(server, data, player):
+  end_game = data['end-game']
+  final_board = get_board(end_game[0])
+  has_won = end_game[1]
+  try:
+    player.end_game(final_board, has_won)
+    assert player.final_board == final_board
+    assert player.has_won == has_won
+    server.send(json.dumps('okay').encode() + '\n'.encode())
+  except AssertionError as e:
+    raise e
+
 while data:
   if data == 'name':
-    player = bg.BopPlayer(data)
-    player_name_json = json.dumps({'name': player.name})
-    s.send(player_name_json.encode() + '\n'.encode())
+    player = handle_name(s, data)
   elif type(data) == dict and 'start-game' in data.keys():
-    start_game = data['start-game']
-    color = start_game[0]
-    opponent = start_game[1]
-    try:
-      player.start_game(color, opponent)
-      assert player.color == color
-      assert player.opponent == opponent
-      s.send(json.dumps('okay').encode() + '\n'.encode())
-    except AssertionError as e:
-      raise e
+    handle_start_game(s, data, player)
   elif type(data) == dict and 'take-turn' in data.keys():
-    turn = data['take-turn']
-    board = get_board(turn[0])
-    player.color = get_color(player.color, board)
-    dice = get_dice(turn[1])
-    result = player.turn(board, dice)
-    s.send(json.dumps({'turn': result}).encode() + '\n'.encode())
+    handle_turn(s, data, player)
   elif type(data) == dict and 'end-game' in data.keys():
-    end_game = data['end-game']
-    final_board = get_board(end_game[0])
-    has_won = end_game[1]
-    try:
-      player.end_game(final_board, has_won)
-      assert player.final_board == final_board
-      assert player.has_won == has_won
-      s.send(json.dumps('okay').encode() + '\n'.encode())
-    except AssertionError as e:
-      raise e
+    handle_end_game(s, data, player)
   data = json.loads(s.recv(1024).decode())
-else: s.close()
