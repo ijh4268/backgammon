@@ -81,10 +81,6 @@ def get_color(color, board):
 def get_dice(values):
   return bg.Dice(values)
 
-@contract(data='list', returns='list(list[2](int|str))')
-def get_turn(data):
-  return data[3]
-
 @contract(moves='list(list(*|int))')
 def create_moves(moves):
   for i, move in enumerate(moves):
