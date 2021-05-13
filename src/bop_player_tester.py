@@ -4,7 +4,7 @@ from parse_json import parse_json
 from contracts import ContractException
 import sys, json, copy
 
-# data = parse_json()[0]
+data = parse_json()[0]
 
 board = get_board(data)
 color = get_color(data, board)
