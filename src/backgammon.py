@@ -448,6 +448,12 @@ class Player(object):
       else: break
     return turn
 
+  def check_winner(self):
+    for posn in self.color.posns:
+      if posn != HOME:
+        return False
+    return True
+
   @contract(board='$Board', has_won='bool')
   def end_game(self, board, has_won):
     self.started = False

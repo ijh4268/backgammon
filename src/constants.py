@@ -20,3 +20,4 @@ WHITE_HOME_QUAD = range(19, 25)
 
 HOST = 'host'
 PORT = 'port'
+LOCAL = 'local'

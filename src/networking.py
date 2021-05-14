@@ -11,18 +11,19 @@ network_config = json.loads(sys.stdin.readline())
 host = network_config[HOST]
 port = network_config[PORT]
 
-def initialize_network(host, port):
+def initialize_network(port, host='localhost', is_admin=True):
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   host = socket.gethostbyname(host)
   s.connect((host, port))
+  if is_admin:
+    confirmation = json.dumps({'admin-networking-started': 'started'})
+    s.send(confirmation.encode() + '\n'.encode())
   return s
 
-s = initialize_network(host, port)
-
-data = json.loads(s.recv(1024).decode())
+s = initialize_network(port, is_admin=False)
 
 def handle_name(server, data):
-  player = bg.BopPlayer(data)
+  player = bg.RemotePlayer(data)
   player_name_json = json.dumps({'name': player.name})
   server.send(player_name_json.encode() + '\n'.encode())
   return player
@@ -59,13 +60,15 @@ def handle_end_game(server, data, player):
   except AssertionError as e:
     raise e
 
-while data:
-  if data == 'name':
-    player = handle_name(s, data)
-  elif type(data) == dict and 'start-game' in data.keys():
-    handle_start_game(s, data, player)
-  elif type(data) == dict and 'take-turn' in data.keys():
-    handle_turn(s, data, player)
-  elif type(data) == dict and 'end-game' in data.keys():
-    handle_end_game(s, data, player)
+def query_remote():
   data = json.loads(s.recv(1024).decode())
+  while data:
+    if data == 'name':
+      player = handle_name(s, data)
+    elif type(data) == dict and 'start-game' in data.keys():
+      handle_start_game(s, data, player)
+    elif type(data) == dict and 'take-turn' in data.keys():
+      handle_turn(s, data, player)
+    elif type(data) == dict and 'end-game' in data.keys():
+      handle_end_game(s, data, player)
+    data = json.loads(s.recv(1024).decode())
