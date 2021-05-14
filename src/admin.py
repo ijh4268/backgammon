@@ -9,15 +9,16 @@ class BackgammonAdmin(object):
     self.winner = None
     self.board = bg.Board()
     self.curr_turn = None
+    self.init_game()
 
   #TODO: Initialize Game func (takes in the admin config and sets up the two Players)
   def init_game(self):
     if self.config[LOCAL] == "Rando":
-      local_player = bg.RandomPlayer('Lou')
+      self.local_player = bg.RandomPlayer('Lou')
     if self.config[LOCAL] == "Bopsy":
-      local_player = bg.BopPlayer('Lou')
+      self.local_player = bg.BopPlayer('Lou')
 
-    # i think we're supposed to use our networking module here to initialize the remote player, but idk how
+    # Setup remote player
     port = self.config[PORT]
     try:
       self.server = initialize_network(port)
@@ -25,25 +26,21 @@ class BackgammonAdmin(object):
       # Do something here if there is an error
       pass
 
-    print("started")
-    remote_player = query_remote()
-    remote_player.port = port
+    self.remote_player = query_remote()
+    self.remote_player.port = port
 
     def take_turns(self):
-      pass
-      # loop until an end_game object is received
-      # if current player == local: use local_player.turn
-      # elif current player == remote: use handle_turn
-      # make sure to validate remote player's turns and call ban_cheater if invalid
-      # advance turn
+      while not self.board.finished():
+        self.current_player.turn()
+      
 
     def ban_cheater(self):
       self.server.close()
-      remote_player = bg.RandomPlayer('Malnati')
+      self.remote_player = bg.RandomPlayer('Malnati')
 
     def end_game(self):
-      local_player.end_game(self.board, local_player.check_winner())
-      remote_player.end_game(self.board, remote_player.check_winner())
+      self.local_player.end_game(self.board, self.local_player.check_winner())
+      self.remote_player.end_game(self.board, self.remote_player.check_winner())
       #handle_end_game(self.server, data, remote_player) # still not sure where 'data' comes from
       self.server.close()
 

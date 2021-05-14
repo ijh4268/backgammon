@@ -6,10 +6,9 @@ import sys
 import json
 
 # Take the JSON object 'network-config' and extract the "host" (string, goes to TCP_IP) and the "port" (number, goes to TCP_PORT)
-network_config = json.loads(sys.stdin.readline())
+# network_config = json.loads(sys.stdin.readline())
 
-host = network_config[HOST]
-port = network_config[PORT]
+# port = network_config[PORT]
 
 def initialize_network(port, host='localhost', is_admin=True):
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,7 +19,7 @@ def initialize_network(port, host='localhost', is_admin=True):
     s.send(confirmation.encode() + '\n'.encode())
   return s
 
-s = initialize_network(port, is_admin=False)
+# s = initialize_network(port, is_admin=False)
 
 def handle_name(server, data):
   player = bg.RemotePlayer(data)

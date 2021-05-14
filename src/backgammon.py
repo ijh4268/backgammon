@@ -161,6 +161,11 @@ class Dice(object):
     self.values = values
     self.original_combos = self.combos()
   
+  def roll(self):
+    self.values = [random.randint(1, 6) for i in range(0, 2)]
+    if self.values[0] == self.values[1]:
+      self.values = [self.values[0] for i in range(0, 4)]
+
   def combos(self):
     if len(self.values) == 2:
       combos = self.values + [sum(self.values)]
@@ -172,7 +177,7 @@ class Dice(object):
 
 # ============================================================================
 class Board(object):
-  @contract (black_posns='list[15](int|str)', white_posns='list[15](int|str)')
+  @contract (black_posns='list[15](int|str)|None', white_posns='list[15](int|str)|None')
   def __init__(self, black_posns=None, white_posns=None):
     if black_posns and white_posns:
       self.black = Black(black_posns)
@@ -206,7 +211,20 @@ class Board(object):
   def query(self, query):
     posns = query.color.posns
     return posns.count(query.cpos)
-  
+
+  # Checks to see if the game is over
+  @contract(returns='bool')
+  def finished(self):
+    black_query = Query(self.black, HOME)
+    white_query = Query(self.white, HOME)
+
+    if self.query(black_query) == 15:
+      return True, self.black
+    elif self.query(white_query) == 15:
+      return True, self.white
+    else:
+      return False
+
   # returns whether or not the given move is a bop
   @contract(move='$Move', returns='bool')
   def is_bop(self, move):
