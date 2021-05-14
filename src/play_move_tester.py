@@ -2,17 +2,17 @@ from constants import *
 from contracts import ContractNotRespected
 from backgammon import Board
 from parse_json import parse_json
-from parse_data import get_board, get_color, get_dice, get_turn, get_moves_from_turn, create_moves
+from parse_data import get_board, get_color, get_dice, get_moves_from_turn, create_moves
 
 import sys, json
 
 try:
     data = parse_json()[0]
 
-    board = get_board(data)
-    color = get_color(data, board)
-    dice = get_dice(data)
-    turn = get_turn(data)
+    board = get_board(data[0])
+    color = get_color(data[1], board)
+    dice = get_dice(data[2])
+    turn = data[3]
 
     get_moves_from_turn(turn, color)
     create_moves(turn)

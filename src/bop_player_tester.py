@@ -1,22 +1,20 @@
 import backgammon as bg
 from parse_data import *
 from parse_json import parse_json
-from contracts import ContractException
-import sys, json, copy
+import sys, json
 
-# data = parse_json()[0]
+data = parse_json()[0]
 
-board = get_board(data)
-color = get_color(data, board)
-dice = get_dice(data)
+board = get_board(data[0])
+color = get_color(data[1], board)
+dice = get_dice(data[2])
 
-bop_player = bg.BopPlayer('bop', color)
+bop_player = bg.BopPlayer('bop')
+bop_player.color = color
 
 turn = bop_player.turn(board, dice)
 
 turn = json.dumps(turn)
-board_print = board.to_json()
 
 sys.stdout.flush()
 sys.stdout.write(turn)
-sys.stdout.write(board_print)

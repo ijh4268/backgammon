@@ -1,6 +1,5 @@
 from constants import *
 
-
 def sort(array, special_feature):
   if special_feature == 'board':
     bars = list(filter(lambda x: x == BAR, array))

@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-
 from contracts.interface import ContractNotRespected
 from parse_data import get_moves_from_turn, create_moves
 from constants import *
@@ -349,7 +348,7 @@ class Board(object):
         # or, if we end up at home with dice left over, then we could have used those dice before bearing off
         if destination_next_die != destination_valid_move \
         or (destination_valid_move == destination_next_die == HOME): return True
-        else: return False
+    return False
 
   @contract(move='$Move', color='$Color', dice='$Dice', occupants='$Color|None')
   def _play_move_helper(self, move, color, dice, occupants):
@@ -397,6 +396,7 @@ class Player(object):
   def __init__(self, name):
     self.name = name
     self.started = False
+    self.color = None
 
   @contract(color='str', opponent_name='str')
   def start_game(self, color, opponent_name):
@@ -460,6 +460,7 @@ class Player(object):
 class RandomPlayer(Player):
   def __init__(self, name):
     super().__init__(name)
+    self.color
   
   @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
   def _get_move(self, valid_moves, board, dice):
@@ -473,6 +474,7 @@ class RandomPlayer(Player):
 class BopPlayer(Player):
   def __init__(self, name):
     super().__init__(name)
+    self.color
 
   @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
   def _get_move(self, valid_moves, board, dice):
@@ -490,3 +492,10 @@ class BopPlayer(Player):
       dice.values.remove(distance)
     else: dice.values.remove(max(dice.values))
     return result
+
+class RemotePlayer(BopPlayer, RandomPlayer):
+  def __init__(self, name, port):
+    super().__init__(name)
+    self.port = port
+
+  
