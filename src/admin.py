@@ -7,10 +7,12 @@ import json, sys, socket
 
 @new_contract
 def ValidateTurns(turns):
-  for turn in turns:
-    if type(turn) == list:
-      result = bg.CPos(turn[0]) and bg.CPos(turn[1])
-    else: return False
+  if type(turns) == list:
+    for turn in turns:
+      if type(turn) == list:
+        result = bg.CPos(turn[0]) and bg.CPos(turn[1])
+      else: result = False
+  else: result = False
   return result
 
 @new_contract
