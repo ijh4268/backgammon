@@ -469,7 +469,7 @@ class Player(object):
       else: break
     return turn
 
-  def _is_winner(self):
+  def is_winner(self):
     if self.color.posns.count(HOME) == 15: return True
     else: return False
 
