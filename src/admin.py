@@ -114,4 +114,4 @@ class BackgammonAdmin(object):
     print(json.dumps({"winner-name": self.winner.name})) #print admin-game-over
     self.connection.sendall(json.dumps({"winner-name": self.winner.name}).encode() + '\n'.encode())
     self.connection.close()
-    self.__init__(self.config)
+    # self.__init__(self.config)
