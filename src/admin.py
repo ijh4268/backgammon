@@ -32,7 +32,7 @@ class BackgammonAdmin(object):
     self.socket.bind(server_address)
     self.socket.listen()
 
-    msg = json.dumps('started\n')
+    msg = json.dumps('started')
     sys.stdout.flush()
     sys.stdout.write(msg)
     sys.stdout.flush()
