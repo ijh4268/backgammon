@@ -32,7 +32,7 @@ class BackgammonAdmin(object):
     self.socket.bind(server_address)
     self.socket.listen()
 
-    msg = json.dumps('started')
+    msg = json.dumps('started\n')
     sys.stdout.write(msg)
     sys.stdout.flush()
     self.connection, client_address = self.socket.accept()
@@ -40,7 +40,7 @@ class BackgammonAdmin(object):
     while True:
       try:
         msg = json.dumps('name')
-        self.connection.sendall(msg.encode() + '\n'.encode())
+        self.connection.send(msg.encode() + '\n'.encode())
         remote_name = json.loads(self.connection.recv(1024).decode())
         self.remote_player = bg.RemotePlayer(remote_name)
         self.remote_player.color = bg.White()
