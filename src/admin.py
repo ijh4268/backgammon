@@ -28,9 +28,9 @@ class BackgammonAdmin(object):
     # Setup remote player
     port = self.config[PORT]
     self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = ('localhost', 10000)
+    server_address = ('localhost', port)
     self.socket.bind(server_address)
-    self.socket.listen(port)
+    self.socket.listen(1)
       
     msg = json.dumps({'admin-networking-started': 'started'})
     sys.stdout.write(msg)
