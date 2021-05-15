@@ -112,7 +112,7 @@ class BackgammonAdmin(object):
     self.end_game()
     
   def ban_cheater(self):
-    self.remote_player = bg.RandomPlayer('Malnati')
+    self.remote_player = bg.BopPlayer('Malnati')
     self.remote_player.color = self.board.get_color(bg.White())
     self.connection.close()
 
