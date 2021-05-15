@@ -33,9 +33,7 @@ class BackgammonAdmin(object):
     self.socket.listen()
 
     msg = json.dumps('started')
-    sys.stdout.flush()
-    sys.stdout.write(msg)
-    sys.stdout.flush()
+    print(msg)
     self.connection, client_address = self.socket.accept()
       
     while True:
