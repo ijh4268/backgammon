@@ -165,6 +165,7 @@ class Dice(object):
     self.values = [random.randint(1, 6) for i in range(0, 2)]
     if self.values[0] == self.values[1]:
       self.values = [self.values[0] for i in range(0, 4)]
+    self.original_combos = self.combos()
 
   def combos(self):
     if len(self.values) == 2:
@@ -423,11 +424,11 @@ class Player(object):
   def start_game(self, color, opponent_name):
     if not self.started: self.started = True
     else: raise RuntimeError('start_game was called before ')
-    print('The game has started!')
+    # print('The game has started!')
     self.color = color
-    print(f'Your color is {color}')
+    # print(f'Your color is {color}')
     self.opponent = opponent_name
-    print(f'Your opponent\'s name is {opponent_name}')
+    # print(f'Your opponent\'s name is {opponent_name}')
   
   @contract(board='$Board', dice='$Dice', returns='list(list[2](int|str))|bool')
   def turn(self, board, dice):
@@ -476,11 +477,11 @@ class Player(object):
   @contract(board='$Board', has_won='bool')
   def end_game(self, board, has_won):
     self.started = False
-    print('Game over!')
+    # print('Game over!')
     self.has_won = has_won
     self.final_board = board
-    result_msg = 'won!' if has_won else 'lost!'
-    print(f'You have ' + result_msg)
+    # result_msg = 'won!' if has_won else 'lost!'
+    # print(f'You have ' + result_msg)
 
 class RandomPlayer(Player):
   def __init__(self, name):

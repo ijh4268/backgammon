@@ -1,5 +1,5 @@
 import backgammon as bg
-from contracts.interface import ContractNotRespected
+from contracts.interface import ContractException, ContractNotRespected
 from constants import *
 from parse_data import get_moves_from_turn, create_moves
 from contracts import new_contract
@@ -73,18 +73,18 @@ class BackgammonAdmin(object):
       if self.current_player == self.remote_player and self.remote_player.is_remote == True:
         # send message (take-turn json object), wait for response. if 'turn' object, validate moves and execute. if not 'turn' object
         # or if move is invalid, call ban_cheater and finish game with Malnati
-        self.connection.sendall(json.dumps({"take-turn": [self.board.as_dict(), self.dice.values]}).encode() + '\n'.encode())
-        data = json.loads(self.connection.recv(1024).decode())
-        ValidateTurnData(data)
-        turn = data['turn']
-        get_moves_from_turn(turn, self.current_player.color)
-        turn = create_moves(turn)
         try:
+          self.connection.sendall(json.dumps({"take-turn": [self.board.as_dict(), self.dice.values]}).encode() + '\n'.encode())
+          data = json.loads(self.connection.recv(1024).decode())
+          if ValidateTurnData(data):
+            turn = data['turn']
+          get_moves_from_turn(turn, self.current_player.color)
+          turn = create_moves(turn)
           if self.board.play_move(self.remote_player.color, self.dice, turn):
             continue
           else:
             self.ban_cheater()
-        except ContractNotRespected:
+        except ContractException:
           self.ban_cheater()
 
       self.current_player = self.local_player if self.current_player != self.local_player else self.remote_player # advances the turn at the end of each turn
@@ -94,6 +94,7 @@ class BackgammonAdmin(object):
   def ban_cheater(self):
     self.connection.close()
     self.remote_player = bg.RandomPlayer('Malnati')
+    self.remote_player.color = bg.White()
 
 
   def end_game(self):
@@ -107,10 +108,8 @@ class BackgammonAdmin(object):
 
     if local_has_won:
       self.winner = self.local_player
-    elif remote_has_won:
+    if remote_has_won:
       self.winner = self.remote_player
-    else:
-      raise ValueError('Impossible tie error')
 
     print(json.dumps({"winner-name": self.winner.name})) #print admin-game-over
     self.connection.sendall(json.dumps({"winner-name": self.winner.name}).encode() + '\n'.encode())
