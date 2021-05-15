@@ -41,7 +41,7 @@ class BackgammonAdmin(object):
     msg = json.dumps('name')
     self.connection.sendall(msg.encode() + '\n'.encode())
     remote_name = json.loads(self.connection.recv(1024).decode())
-    self.remote_player = bg.RemotePlayer(remote_name)
+    self.remote_player = bg.RemotePlayer(remote_name, port)
     self.remote_player.color = bg.White()
 
     #send start-game object
