@@ -28,7 +28,7 @@ class BackgammonAdmin(object):
     # Setup remote player
     port = self.config[PORT]
     self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = ('localhost', port)
+    server_address = ('', port)
     self.socket.bind(server_address)
     self.socket.listen(1)
       
