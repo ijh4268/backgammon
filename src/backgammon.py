@@ -470,8 +470,9 @@ class Player(object):
       else: break
     return turn
 
-  def is_winner(self):
-    if self.color.posns.count(HOME) == 15: return True
+  def is_winner(self, board):
+    color = board.get_color(self.color)
+    if color.posns.count(HOME) == 15: return True
     else: return False
 
   @contract(board='$Board', has_won='bool')
