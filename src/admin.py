@@ -39,13 +39,13 @@ class BackgammonAdmin(object):
       self.connection, client_address = self.socket.accept()
   
       try:
-        self.connection.send(json.dumps('name').encode())
+        self.connection.sendall(json.dumps('name').encode())
         remote_name = json.loads(self.connection.recv(1024).decode())
         self.remote_player = bg.RemotePlayer(remote_name)
         self.remote_player.color = bg.White()
 
         #send start-game object
-        self.connection.send(json.dumps({'start-game': [self.remote_player.color.name(), self.local_player.name]}).encode())
+        self.connection.sendall(json.dumps({'start-game': [self.remote_player.color.name(), self.local_player.name]}).encode())
         response = json.loads(self.connection.recv(1024).decode())
 
         while response:
@@ -72,7 +72,7 @@ class BackgammonAdmin(object):
       if self.current_player == self.remote_player and self.remote_player.is_remote == True:
         # send message (take-turn json object), wait for response. if 'turn' object, validate moves and execute. if not 'turn' object
         # or if move is invalid, call ban_cheater and finish game with Malnati
-        self.connection.send(json.dumps({"take-turn": [self.board, self.dice]}).encode())
+        self.connection.sendall(json.dumps({"take-turn": [self.board, self.dice]}).encode())
         turn = json.loads(self.connection.recv(1024).decode())
         try:
           if self.board.play_move(self.remote_player.color, self.dice, turn) == False:
@@ -96,7 +96,7 @@ class BackgammonAdmin(object):
     local_has_won = self.local_player.is_winner()
     remote_has_won = self.remote_player.is_winner()
     self.local_player.end_game(self.board, local_has_won)
-    self.connection.send(json.dumps({"end-game": [self.board, remote_has_won]}))
+    self.connection.sendall(json.dumps({"end-game": [self.board, remote_has_won]}))
     while True:
       msg = json.loads(self.connection.recv(1024).decode())
       if msg == "okay": break
@@ -110,6 +110,6 @@ class BackgammonAdmin(object):
       pass 
 
     print(json.dumps({"winner-name": self.winner.name})) #print admin-game-over
-    self.connection.send(json.dumps({"winner-name": self.winner.name}).encode())
+    self.connection.sendall(json.dumps({"winner-name": self.winner.name}).encode())
     self.connection.close()
     self.__init__(self.config)
