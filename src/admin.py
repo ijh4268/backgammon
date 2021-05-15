@@ -37,26 +37,21 @@ class BackgammonAdmin(object):
     sys.stdout.write(msg)
     sys.stdout.flush()
     self.connection, client_address = self.socket.accept()
-      
-    while True:
-      try:
-        msg = json.dumps('name')
-        self.connection.send(msg.encode() + '\n'.encode())
-        remote_name = json.loads(self.connection.recv(1024).decode())
-        self.remote_player = bg.RemotePlayer(remote_name)
-        self.remote_player.color = bg.White()
+     
+    msg = json.dumps('name')
+    self.connection.sendall(msg.encode() + '\n'.encode())
+    remote_name = json.loads(self.connection.recv(1024).decode())
+    self.remote_player = bg.RemotePlayer(remote_name)
+    self.remote_player.color = bg.White()
 
-        #send start-game object
-        self.connection.sendall(json.dumps({'start-game': [self.remote_player.color.name(), self.local_player.name]}).encode() + '\n'.encode())
-        response = json.loads(self.connection.recv(1024).decode())
+    #send start-game object
+    self.connection.sendall(json.dumps({'start-game': [self.remote_player.color.name(), self.local_player.name]}).encode() + '\n'.encode())
+    response = json.loads(self.connection.recv(1024).decode())
 
-        while response:
-          if response == 'okay': break
-      
-        self.take_turns()
-      except:
-        pass
-
+    while response:
+      if response == 'okay': break
+  
+    self.take_turns()
 
   def take_turns(self):
     while not self.board.finished():
