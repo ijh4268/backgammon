@@ -69,7 +69,7 @@ class BackgammonAdmin(object):
       if self.current_player == self.remote_player and self.remote_player.is_remote == True:
         # send message (take-turn json object), wait for response. if 'turn' object, validate moves and execute. if not 'turn' object
         # or if move is invalid, call ban_cheater and finish game with Malnati
-        self.connection.sendall(json.dumps({"take-turn": [self.board, self.dice]}).encode() + '\n'.encode())
+        self.connection.sendall(json.dumps({"take-turn": [self.board.to_json(), self.dice.to_json()]}).encode() + '\n'.encode())
         turn = json.loads(self.connection.recv(1024).decode())
         try:
           if self.board.play_move(self.remote_player.color, self.dice, turn) == False:
@@ -93,7 +93,7 @@ class BackgammonAdmin(object):
     local_has_won = self.local_player.is_winner()
     remote_has_won = self.remote_player.is_winner()
     self.local_player.end_game(self.board, local_has_won)
-    self.connection.sendall(json.dumps({"end-game": [self.board, remote_has_won]}).encode() + '\n'.encode())
+    self.connection.sendall(json.dumps({"end-game": [self.board.to_json(), remote_has_won]}).encode() + '\n'.encode())
     while True:
       msg = json.loads(self.connection.recv(1024).decode())
       if msg == "okay": break

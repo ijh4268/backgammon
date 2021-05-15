@@ -175,6 +175,9 @@ class Dice(object):
       combos = self.values
     return sorted(combos, reverse=True)
 
+  def to_json(self):
+    return json.dumps(self.values)
+
 # ============================================================================
 class Board(object):
   @contract (black_posns='list[15](int|str)|None', white_posns='list[15](int|str)|None')
