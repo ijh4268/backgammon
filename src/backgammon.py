@@ -156,7 +156,7 @@ class Move(object):
     return json.dumps([self.color.name, self.source_cpos, self.dest_cpos])
 # ============================================================================
 class Dice(object):
-  @contract(values='ValidateDice')
+  @contract(values='ValidateDice|list[0]')
   def __init__(self, values=[]):
     self.values = values
     self.original_combos = self.combos()

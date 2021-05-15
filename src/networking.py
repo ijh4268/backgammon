@@ -2,14 +2,13 @@ from constants import *
 import backgammon as bg
 from parse_data import get_board, get_dice, get_color
 import socket
-import sys
 import json
 
 # Take the JSON object 'network-config' and extract the "host" (string, goes to TCP_IP) and the "port" (number, goes to TCP_PORT)
-network_config = json.loads(sys.stdin.readline())
+# network_config = json.loads(sys.stdin.readline())
 
-host = network_config[HOST]
-port = network_config[PORT]
+# host = network_config[HOST]
+# port = network_config[PORT]
 
 def initialize_network(port, host):
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -17,7 +16,7 @@ def initialize_network(port, host):
   s.connect((host, port))
   return s
 
-s = initialize_network(port, host)
+# s = initialize_network(port, host)
 
 def handle_name(server, data):
   player = bg.RemotePlayer(data)

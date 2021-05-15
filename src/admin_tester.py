@@ -3,8 +3,7 @@ from parse_json import parse_json
 from constants import *
 
 # parse json stuff
-data = parse_json()[0]
-config = dict(filter(lambda x: x[0] == LOCAL or x[0] == PORT, data.items()))
+config = parse_json()[0]
 
 # create instance of BackgammonAdmin
 admin = BackgammonAdmin(config)
