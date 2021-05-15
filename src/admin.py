@@ -28,16 +28,16 @@ class BackgammonAdmin(object):
     # Setup remote player
     port = self.config[PORT]
     self.socket = socket.socket()
-    server_address = ('', port)
+    server_address = ('localhost', port)
     self.socket.bind(server_address)
-    self.socket.listen(1)
+    self.socket.listen()
+
     msg = json.dumps('started')
     sys.stdout.write(msg)
     sys.stdout.flush()
+    self.connection, client_address = self.socket.accept()
       
     while True:
-      self.connection, client_address = self.socket.accept()
-  
       try:
         msg = json.dumps('name')
         self.connection.sendall(msg.encode())
