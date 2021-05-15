@@ -66,7 +66,7 @@ class BackgammonAdmin(object):
         self.current_player.turn(self.board, self.dice)
 
       #if remote player cheated and got replaced by Malnati
-      if self.current_player == self.remote_player and self.remote_player.is_remote == False:
+      if self.current_player == self.remote_player and self.remote_player:
         self.current_player.turn(self.board, self.dice)
 
       #remote player turn 
@@ -76,7 +76,8 @@ class BackgammonAdmin(object):
         self.connection.sendall(json.dumps({"take-turn": [self.board.as_dict(), self.dice.values]}).encode() + '\n'.encode())
         data = json.loads(self.connection.recv(1024).decode())
         ValidateTurnData(data)
-        turn = get_moves_from_turn(data['turn'], self.current_player.color)
+        turn = data['turn']
+        get_moves_from_turn(turn, self.current_player.color)
         try:
           if self.board.play_move(self.remote_player.color, self.dice, turn):
             continue
