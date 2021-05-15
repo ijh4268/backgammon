@@ -66,7 +66,7 @@ class BackgammonAdmin(object):
         self.current_player.turn(self.board, self.dice)
 
       #if remote player cheated and got replaced by Malnati
-      if self.current_player == self.remote_player and self.remote_player:
+      if self.current_player == self.remote_player and not isinstance(self.remote_player, bg.RemotePlayer):
         self.current_player.turn(self.board, self.dice)
 
       #remote player turn 
