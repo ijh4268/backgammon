@@ -79,7 +79,7 @@ class BackgammonAdmin(object):
         except ContractNotRespected:
           self.ban_cheater()
 
-      self.current_player = self.current_player.opponent # advances the turn at the end of each turn
+      self.current_player = self.local_player if self.current_player is not self.local_player else self.remote_player # advances the turn at the end of each turn
     self.end_game()
     
 

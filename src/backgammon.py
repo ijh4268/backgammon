@@ -415,6 +415,7 @@ class Player(object):
     self.name = name
     self.started = False
     self.color = None
+    self.opponent = None
     self.is_remote = False
 
   @contract(color='str', opponent_name='str')
@@ -484,6 +485,7 @@ class RandomPlayer(Player):
   def __init__(self, name):
     super().__init__(name)
     self.color
+    self.opponent
   
   @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
   def _get_move(self, valid_moves, board, dice):
@@ -498,6 +500,7 @@ class BopPlayer(Player):
   def __init__(self, name):
     super().__init__(name)
     self.color
+    self.opponent
 
   @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
   def _get_move(self, valid_moves, board, dice):
@@ -522,5 +525,6 @@ class RemotePlayer(Player):
     self.port = port
     self.is_remote = True
     self.color = None
+    self.opponent
 
   
