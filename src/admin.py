@@ -1,5 +1,5 @@
 import backgammon as bg
-from contracts.interface import ContractNotRespected
+from contracts.interface import ContractException, ContractNotRespected
 from constants import *
 from parse_data import get_moves_from_turn, create_moves
 from contracts import new_contract, check
@@ -90,7 +90,7 @@ class BackgammonAdmin(object):
         self.current_player.turn(self.board, self.dice)
 
       #remote player turn 
-      elif self.current_player == self.remote_player and self.remote_player.is_remote == True:
+      elif self.current_player == self.remote_player and isinstance(self.remote_player, bg.RemotePlayer):
         # send message (take-turn json object), wait for response. if 'turn' object, validate moves and execute. if not 'turn' object
         # or if move is invalid, call ban_cheater and finish game with Malnati
         try:
@@ -104,7 +104,7 @@ class BackgammonAdmin(object):
            pass
           else:
             self.ban_cheater()
-        except ContractNotRespected:
+        except ContractNotRespected or ContractException:
           self.ban_cheater()
       else: raise ValueError('Something went wrong with player swapping')
       #* Swap players
