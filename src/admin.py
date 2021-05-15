@@ -2,7 +2,7 @@ import backgammon as bg
 from contracts.interface import ContractException, ContractNotRespected
 from constants import *
 from parse_data import get_moves_from_turn, create_moves
-from contracts import new_contract
+from contracts import new_contract, check
 import json, sys, socket
 
 @new_contract
@@ -30,7 +30,7 @@ class BackgammonAdmin(object):
     if self.config[LOCAL] == 'Bopsy':
       self.local_player = bg.BopPlayer('Lou')
 
-    self.local_player.color = bg.Black()
+    self.local_player.color = self.board.get_color(bg.Black())
     self.current_player = self.local_player
 
     # Setup remote player
@@ -49,12 +49,14 @@ class BackgammonAdmin(object):
     msg = json.dumps('name')
     self.connection.sendall(msg.encode() + '\n'.encode())
     remote_name = json.loads(self.connection.recv(1024).decode())
-    name = None
-    if ValidateNameData(remote_name):
-      name = remote_name['name']
+    try:
+      check('ValidateNameData', remote_name)
+    except ContractNotRespected:
+      self.ban_cheater()
+    name = remote_name['name']
     if not name: self.ban_cheater()
     self.remote_player = bg.RemotePlayer(name, port)
-    self.remote_player.color = bg.White()
+    self.remote_player.color = self.board.get_color(bg.White())
 
     #send start-game object
     self.connection.sendall(json.dumps({'start-game': [self.remote_player.color.name(), self.local_player.name]}).encode() + '\n'.encode())
@@ -84,9 +86,8 @@ class BackgammonAdmin(object):
         try:
           self.connection.sendall(json.dumps({"take-turn": [self.board.as_dict(), self.dice.values]}).encode() + '\n'.encode())
           data = json.loads(self.connection.recv(1024).decode())
-          turn = None
-          if ValidateTurnData(data):
-            turn = data['turn']
+          check('ValidateTurnData', data)
+          turn = data['turn']
           if not turn: self.ban_cheater()
           get_moves_from_turn(turn, self.current_player.color)
           turn = create_moves(turn)
@@ -105,7 +106,7 @@ class BackgammonAdmin(object):
   def ban_cheater(self):
     self.connection.close()
     self.remote_player = bg.RandomPlayer('Malnati')
-    self.remote_player.color = bg.White()
+    self.remote_player.color = self.board.get_color(bg.White())
 
   def end_game(self):
     local_has_won = self.local_player.is_winner(self.board)
