@@ -74,11 +74,11 @@ class BackgammonAdmin(object):
         self.current_player.turn(self.board, self.dice)
 
       #if remote player cheated and got replaced by Malnati
-      if self.current_player == self.remote_player and not isinstance(self.remote_player, bg.RemotePlayer):
+      elif self.current_player == self.remote_player and not isinstance(self.remote_player, bg.RemotePlayer):
         self.current_player.turn(self.board, self.dice)
 
       #remote player turn 
-      if self.current_player == self.remote_player and self.remote_player.is_remote == True:
+      elif self.current_player == self.remote_player and self.remote_player.is_remote == True:
         # send message (take-turn json object), wait for response. if 'turn' object, validate moves and execute. if not 'turn' object
         # or if move is invalid, call ban_cheater and finish game with Malnati
         try:
@@ -96,16 +96,15 @@ class BackgammonAdmin(object):
             self.ban_cheater()
         except ContractException:
           self.ban_cheater()
+      else: raise ValueError('Something went wrong with player swapping')
 
       self.current_player = self.local_player if self.current_player != self.local_player else self.remote_player # advances the turn at the end of each turn
     self.end_game()
     
-
   def ban_cheater(self):
     self.connection.close()
     self.remote_player = bg.RandomPlayer('Malnati')
     self.remote_player.color = bg.White()
-
 
   def end_game(self):
     local_has_won = self.local_player.is_winner(self.board)

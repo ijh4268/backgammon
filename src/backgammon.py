@@ -441,7 +441,7 @@ class Player(object):
       try:
         random_turn = self._try_moves(board_copy, dice_copy)
         assert board.play_move(self.color, dice, random_turn)
-        return [move.as_list for move in random_turn]
+        return [move.as_list for move in random_turn] 
       except AssertionError:
         # reset the board if the turn is not valid and try again
         board = deepcopy(board_reset) 
