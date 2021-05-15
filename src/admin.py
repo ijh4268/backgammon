@@ -11,7 +11,7 @@ def ValidateTurnData(data):
 
 @new_contract
 def ValidateNameData(data):
-  return type(data) == dict and 'name' in data.keys()
+  return type(data) == dict and 'name' in data.keys() and type(data['name']) == str
 
 class BackgammonAdmin(object):
   def __init__(self, config):
@@ -49,8 +49,10 @@ class BackgammonAdmin(object):
     msg = json.dumps('name')
     self.connection.sendall(msg.encode() + '\n'.encode())
     remote_name = json.loads(self.connection.recv(1024).decode())
+    name = None
     if ValidateNameData(remote_name):
       name = remote_name['name']
+    if not name: self.ban_cheater()
     self.remote_player = bg.RemotePlayer(name, port)
     self.remote_player.color = bg.White()
 
@@ -82,8 +84,10 @@ class BackgammonAdmin(object):
         try:
           self.connection.sendall(json.dumps({"take-turn": [self.board.as_dict(), self.dice.values]}).encode() + '\n'.encode())
           data = json.loads(self.connection.recv(1024).decode())
+          turn = None
           if ValidateTurnData(data):
             turn = data['turn']
+          if not turn: self.ban_cheater()
           get_moves_from_turn(turn, self.current_player.color)
           turn = create_moves(turn)
           if self.board.play_move(self.remote_player.color, self.dice, turn):
