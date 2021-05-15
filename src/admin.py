@@ -100,18 +100,17 @@ class BackgammonAdmin(object):
     local_has_won = self.local_player.is_winner()
     remote_has_won = self.remote_player.is_winner()
     self.local_player.end_game(self.board, local_has_won)
-    self.connection.sendall(json.dumps({"end-game": [self.board.to_json(), remote_has_won]}).encode() + '\n'.encode())
+    self.connection.sendall(json.dumps({"end-game": [self.board.as_dict(), remote_has_won]}).encode() + '\n'.encode())
     while True:
       msg = json.loads(self.connection.recv(1024).decode())
       if msg == "okay": break
 
     if local_has_won:
       self.winner = self.local_player
-    if remote_has_won:
+    elif remote_has_won:
       self.winner = self.remote_player
     else:
-      #raise some error because there is no winner D: (is this check even necessary?)
-      pass 
+      raise ValueError('Impossible tie error')
 
     print(json.dumps({"winner-name": self.winner.name})) #print admin-game-over
     self.connection.sendall(json.dumps({"winner-name": self.winner.name}).encode() + '\n'.encode())
