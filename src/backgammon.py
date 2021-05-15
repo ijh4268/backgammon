@@ -183,8 +183,8 @@ class Board(object):
       self.black = Black(black_posns)
       self.white = White(white_posns)
     else:
-      self.black_posns = Black()
-      self.white_posns = White()
+      self.black = Black()
+      self.white = White()
       
     self.special_feature = 'board'
 
