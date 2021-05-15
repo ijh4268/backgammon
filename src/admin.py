@@ -9,6 +9,10 @@ import json, sys, socket
 def ValidateTurnData(data):
   return type(data) == dict and 'turn' in data.keys()
 
+@new_contract
+def ValidateNameData(data):
+  return type(data) == dict and 'name' in data.keys()
+
 class BackgammonAdmin(object):
   def __init__(self, config):
     self.config = config
@@ -45,7 +49,9 @@ class BackgammonAdmin(object):
     msg = json.dumps('name')
     self.connection.sendall(msg.encode() + '\n'.encode())
     remote_name = json.loads(self.connection.recv(1024).decode())
-    self.remote_player = bg.RemotePlayer(remote_name, port)
+    if ValidateNameData(remote_name):
+      name = remote_name['name']
+    self.remote_player = bg.RemotePlayer(name, port)
     self.remote_player.color = bg.White()
 
     #send start-game object
