@@ -516,10 +516,11 @@ class BopPlayer(Player):
     else: dice.values.remove(max(dice.values))
     return result
 
-class RemotePlayer(BopPlayer, RandomPlayer):
+class RemotePlayer(Player):
   def __init__(self, name, port):
     super().__init__(name)
     self.port = port
     self.is_remote = True
+    self.color = None
 
   

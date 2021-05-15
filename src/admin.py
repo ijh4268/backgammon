@@ -23,7 +23,6 @@ class BackgammonAdmin(object):
       self.local_player = bg.BopPlayer('Lou')
 
     self.local_player.color = bg.Black()
-    self.remote_player.color = bg.White()
     self.current_player = self.local_player
 
     # Setup remote player
@@ -43,9 +42,10 @@ class BackgammonAdmin(object):
         self.connection.send(json.dumps('name').encode())
         remote_name = json.loads(self.connection.recv(1024).decode())
         self.remote_player = bg.RemotePlayer(remote_name)
+        self.remote_player.color = bg.White()
 
         #send start-game object
-        self.connection.send(json.dumps({'start-game': [self.remote_player.color, self.local_player.name]}).encode())
+        self.connection.send(json.dumps({'start-game': [self.remote_player.color.name(), self.local_player.name]}).encode())
         response = json.loads(self.connection.recv(1024).decode())
 
         while response:
