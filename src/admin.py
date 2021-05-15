@@ -27,7 +27,7 @@ class BackgammonAdmin(object):
 
     # Setup remote player
     port = self.config[PORT]
-    self.socket = socket.socket()
+    self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_address = ('localhost', port)
     self.socket.bind(server_address)
     self.socket.listen()
@@ -40,13 +40,13 @@ class BackgammonAdmin(object):
     while True:
       try:
         msg = json.dumps('name')
-        self.connection.sendall(msg.encode())
+        self.connection.sendall(msg.encode() + '\n'.encode())
         remote_name = json.loads(self.connection.recv(1024).decode())
         self.remote_player = bg.RemotePlayer(remote_name)
         self.remote_player.color = bg.White()
 
         #send start-game object
-        self.connection.sendall(json.dumps({'start-game': [self.remote_player.color.name(), self.local_player.name]}).encode())
+        self.connection.sendall(json.dumps({'start-game': [self.remote_player.color.name(), self.local_player.name]}).encode() + '\n'.encode())
         response = json.loads(self.connection.recv(1024).decode())
 
         while response:
@@ -73,7 +73,7 @@ class BackgammonAdmin(object):
       if self.current_player == self.remote_player and self.remote_player.is_remote == True:
         # send message (take-turn json object), wait for response. if 'turn' object, validate moves and execute. if not 'turn' object
         # or if move is invalid, call ban_cheater and finish game with Malnati
-        self.connection.sendall(json.dumps({"take-turn": [self.board, self.dice]}).encode())
+        self.connection.sendall(json.dumps({"take-turn": [self.board, self.dice]}).encode() + '\n'.encode())
         turn = json.loads(self.connection.recv(1024).decode())
         try:
           if self.board.play_move(self.remote_player.color, self.dice, turn) == False:
@@ -97,7 +97,7 @@ class BackgammonAdmin(object):
     local_has_won = self.local_player.is_winner()
     remote_has_won = self.remote_player.is_winner()
     self.local_player.end_game(self.board, local_has_won)
-    self.connection.sendall(json.dumps({"end-game": [self.board, remote_has_won]}))
+    self.connection.sendall(json.dumps({"end-game": [self.board, remote_has_won]}).encode() + '\n'.encode())
     while True:
       msg = json.loads(self.connection.recv(1024).decode())
       if msg == "okay": break
@@ -111,6 +111,6 @@ class BackgammonAdmin(object):
       pass 
 
     print(json.dumps({"winner-name": self.winner.name})) #print admin-game-over
-    self.connection.sendall(json.dumps({"winner-name": self.winner.name}).encode())
+    self.connection.sendall(json.dumps({"winner-name": self.winner.name}).encode() + '\n'.encode())
     self.connection.close()
     self.__init__(self.config)
