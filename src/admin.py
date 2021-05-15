@@ -1,7 +1,7 @@
 import backgammon as bg
 from contracts.interface import ContractNotRespected
 from constants import *
-from parse_data import get_moves_from_turn
+from parse_data import get_moves_from_turn, create_moves
 from contracts import new_contract
 import json, sys, socket
 
@@ -78,6 +78,7 @@ class BackgammonAdmin(object):
         ValidateTurnData(data)
         turn = data['turn']
         get_moves_from_turn(turn, self.current_player.color)
+        turn = create_moves(turn)
         try:
           if self.board.play_move(self.remote_player.color, self.dice, turn):
             continue
