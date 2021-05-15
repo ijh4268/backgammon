@@ -32,14 +32,15 @@ class BackgammonAdmin(object):
     self.socket.bind(server_address)
     self.socket.listen(1)
       
-    msg = json.dumps({'admin-networking-started': 'started'})
+    msg = json.dumps('started')
     sys.stdout.write(msg)
       
     while True:
       self.connection, client_address = self.socket.accept()
   
       try:
-        self.connection.sendall('name'.encode())
+        msg = json.dumps('name')
+        self.connection.sendall(msg.encode())
         remote_name = json.loads(self.connection.recv(1024).decode())
         self.remote_player = bg.RemotePlayer(remote_name)
         self.remote_player.color = bg.White()
