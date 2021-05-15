@@ -190,7 +190,7 @@ class Board(object):
 
   def as_dict(self):
     return {BLACK:self.black.posns, WHITE:self.white.posns}
-    
+
   def to_json(self):
     return json.dumps(self.as_dict())
 
@@ -221,10 +221,8 @@ class Board(object):
     black_query = Query(self.black, HOME)
     white_query = Query(self.white, HOME)
 
-    if self.query(black_query) == 15:
-      return True, self.black
-    elif self.query(white_query) == 15:
-      return True, self.white
+    if self.query(black_query) == 15 or self.query(white_query) == 15:
+      return True
     else:
       return False
 
