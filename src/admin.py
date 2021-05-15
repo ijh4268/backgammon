@@ -1,9 +1,13 @@
-from contracts.interface import ContractNotRespected
 import backgammon as bg
-import socket
+from contracts.interface import ContractNotRespected
 from constants import *
-import json
-import sys
+from parse_data import get_moves_from_turn
+from contracts import new_contract
+import json, sys, socket
+
+@new_contract
+def ValidateTurnData(data):
+  return type(data) == dict and 'turn' in data.keys()
 
 class BackgammonAdmin(object):
   def __init__(self, config):
@@ -70,12 +74,14 @@ class BackgammonAdmin(object):
         # send message (take-turn json object), wait for response. if 'turn' object, validate moves and execute. if not 'turn' object
         # or if move is invalid, call ban_cheater and finish game with Malnati
         self.connection.sendall(json.dumps({"take-turn": [self.board.as_dict(), self.dice.values]}).encode() + '\n'.encode())
-        turn = json.loads(self.connection.recv(1024).decode())
+        data = json.loads(self.connection.recv(1024).decode())
+        ValidateTurnData(data)
+        turn = get_moves_from_turn(data['turn'], self.current_player.color)
         try:
-          if self.board.play_move(self.remote_player.color, self.dice, turn) == False:
-            self.ban_cheater()
+          if self.board.play_move(self.remote_player.color, self.dice, turn):
+            continue
           else:
-            self.board.play_move(self.remote_player.color, self.dice, turn)
+            self.ban_cheater()
         except ContractNotRespected:
           self.ban_cheater()
 
@@ -86,7 +92,6 @@ class BackgammonAdmin(object):
   def ban_cheater(self):
     self.connection.close()
     self.remote_player = bg.RandomPlayer('Malnati')
-    self.remote_player.is_remote = False
 
 
   def end_game(self):
