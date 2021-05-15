@@ -8,6 +8,7 @@ import json, sys, socket
 @new_contract
 def ValidateTurns(turns):
   if type(turns) == list:
+    if len(turns) == 0: return True
     for turn in turns:
       if type(turn) == list:
         result = bg.CPos(turn[0]) and bg.CPos(turn[1])
