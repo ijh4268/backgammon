@@ -30,7 +30,6 @@ class BackgammonAdmin(object):
     port = self.config[PORT]
     self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_address = ('localhost', 10000)
-    print >>sys.stderr, 'starting up on %s port %s' % server_address
     self.socket.bind(server_address)
     self.socket.listen(port)
       
@@ -38,7 +37,6 @@ class BackgammonAdmin(object):
     sys.stdout.write(msg)
       
     while True:
-      print >>sys.stderr, 'waiting for a connection'
       self.connection, client_address = self.socket.accept()
   
       try:

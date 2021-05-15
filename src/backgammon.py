@@ -157,7 +157,7 @@ class Move(object):
 # ============================================================================
 class Dice(object):
   @contract(values='ValidateDice')
-  def __init__(self, values):
+  def __init__(self, values=[]):
     self.values = values
     self.original_combos = self.combos()
   
