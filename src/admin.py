@@ -1,6 +1,9 @@
+from contracts.interface import ContractNotRespected
 import backgammon as bg
-from networking import *
+import socket
 from constants import *
+import json
+import sys
 
 class BackgammonAdmin(object):
   def __init__(self, config):
@@ -8,71 +11,107 @@ class BackgammonAdmin(object):
     self.server = None
     self.winner = None
     self.board = bg.Board()
-    self.current_player = None
+    self.dice = bg.Dice()
     self.init_game()
 
-  #TODO: Initialize Game func (takes in the admin config and sets up the two Players)
+  # TODO: Initialize Game func (takes in the admin config and sets up the two Players)
   def init_game(self):
-    self.dice = bg.Dice([0, 0])
 
-    if self.config[LOCAL] == "Rando":
+    if self.config[LOCAL] == 'Rando':
       self.local_player = bg.RandomPlayer('Lou')
-    if self.config[LOCAL] == "Bopsy":
+    if self.config[LOCAL] == 'Bopsy':
       self.local_player = bg.BopPlayer('Lou')
+
+    self.local_player.color = bg.Black()
+    self.remote_player.color = bg.White()
+    self.current_player = self.local_player
 
     # Setup remote player
     port = self.config[PORT]
-    try:
-      self.server = initialize_network(port)
-    except:
-      # Do something here if there is an error
-      pass
-
-    self.remote_player = query_remote()
-    self.remote_player.port = port
-
-    print("started") #print admin-networking-started
-
-
-    def take_turns(self):
-      while not self.board.finished():
-        self.dice.roll() # roll new dice values at the beginning of each turn
-        self.current_player.turn()
-
-        #local player turn
-        if self.current_player == self.local_player:
-          # generate valid moves with the current board, use _get_move to get a move, then execute move on self.board
-          pass
-
-        #remote player turn
-        if self.current_player == self.remote_player:
-          # send message (take-turn json object), wait for response. if 'turn' object, validate moves and execute. if not 'turn' object
-          # or if move is invalid, call ban_cheater and finish game with Malnati
-          pass
-
-        self.current_player = self.current_player.opponent # advance the turn at the end of each turn
+    self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_address = ('localhost', 10000)
+    print >>sys.stderr, 'starting up on %s port %s' % server_address
+    self.socket.bind(server_address)
+    self.socket.listen(port)
       
+    msg = json.dumps({'admin-networking-started': 'started'})
+    sys.stdout.write(msg)
+      
+    while True:
+      print >>sys.stderr, 'waiting for a connection'
+      self.connection, client_address = self.socket.accept()
+  
+      try:
+        self.connection.send(json.dumps('name').encode())
+        remote_name = json.loads(self.connection.recv(1024).decode())
+        self.remote_player = bg.RemotePlayer(remote_name)
 
-    def ban_cheater(self):
-      self.server.close()
-      self.remote_player = bg.RandomPlayer('Malnati')
+        #send start-game object
+        self.connection.send(json.dumps({'start-game': [self.remote_player.color, self.local_player.name]}).encode())
+        response = json.loads(self.connection.recv(1024).decode())
+
+        while response:
+          if response == 'okay': break
+      
+        self.take_turns()
+      except:
+        pass
 
 
-    def end_game(self):
-      self.local_player.end_game(self.board, self.local_player.check_winner())
-      #self.remote_player.end_game(self.board, self.remote_player.check_winner()) //// should be sending end-game object through server
+  def take_turns(self):
+    while not self.board.finished():
+      self.dice.roll() # roll new dice values at the beginning of each turn
 
-      # check who's the winner and set in self.winner
-      if self.local_player.check_winner() == True:
-        self.winner = self.local_player
-      if self.remote_player.check_winner() == True:
-        self.winner = self.remote_player
-      else:
-        #raise some error because there is no winner D: (is this check even necessary?)
-        pass 
+      #local player turn
+      if self.current_player == self.local_player:
+        self.current_player.turn(self.board, self.dice)
 
-      admin_game_over = {"winner-name": self.winner.name}
-      print(json.dumps(admin_game_over)) #print admin-game-over
-      self.server.close()
+      #if remote player cheated and got replaced by Malnati
+      if self.current_player == self.remote_player and self.remote_player.is_remote == False:
+        self.current_player.turn(self.board, self.dice)
 
-  #TODO: Ensure the remote player gets set up properly with the network and we get a response. Once a repsonse is received
+      #remote player turn 
+      if self.current_player == self.remote_player and self.remote_player.is_remote == True:
+        # send message (take-turn json object), wait for response. if 'turn' object, validate moves and execute. if not 'turn' object
+        # or if move is invalid, call ban_cheater and finish game with Malnati
+        self.connection.send(json.dumps({"take-turn": [self.board, self.dice]}).encode())
+        turn = json.loads(self.connection.recv(1024).decode())
+        try:
+          if self.board.play_move(self.remote_player.color, self.dice, turn) == False:
+            self.ban_cheater()
+          else:
+            self.board.play_move(self.remote_player.color, self.dice, turn)
+        except ContractNotRespected:
+          self.ban_cheater()
+
+      self.current_player = self.current_player.opponent # advances the turn at the end of each turn
+    self.end_game()
+    
+
+  def ban_cheater(self):
+    self.connection.close()
+    self.remote_player = bg.RandomPlayer('Malnati')
+    self.remote_player.is_remote = False
+
+
+  def end_game(self):
+    local_has_won = self.local_player.is_winner()
+    remote_has_won = self.remote_player.is_winner()
+    self.local_player.end_game(self.board, local_has_won)
+    self.connection.send(json.dumps({"end-game": [self.board, remote_has_won]}))
+    while True:
+      msg = json.loads(self.connection.recv(1024).decode())
+      if msg == "okay": break
+
+    if local_has_won:
+      self.winner = self.local_player
+    if remote_has_won:
+      self.winner = self.remote_player
+    else:
+      #raise some error because there is no winner D: (is this check even necessary?)
+      pass 
+
+    print(json.dumps({"winner-name": self.winner.name})) #print admin-game-over
+    self.connection.send(json.dumps({"winner-name": self.winner.name}).encode())
+    self.connection.close()
+    self.__init__(self.config)

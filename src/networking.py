@@ -6,20 +6,18 @@ import sys
 import json
 
 # Take the JSON object 'network-config' and extract the "host" (string, goes to TCP_IP) and the "port" (number, goes to TCP_PORT)
-# network_config = json.loads(sys.stdin.readline())
+network_config = json.loads(sys.stdin.readline())
 
-# port = network_config[PORT]
+host = network_config[HOST]
+port = network_config[PORT]
 
-def initialize_network(port, host='localhost', is_admin=True):
+def initialize_network(port, host):
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   host = socket.gethostbyname(host)
   s.connect((host, port))
-  if is_admin:
-    confirmation = json.dumps({'admin-networking-started': 'started'})
-    s.send(confirmation.encode() + '\n'.encode())
   return s
 
-# s = initialize_network(port, is_admin=False)
+s = initialize_network(port, host)
 
 def handle_name(server, data):
   player = bg.RemotePlayer(data)
@@ -59,7 +57,7 @@ def handle_end_game(server, data, player):
   except AssertionError as e:
     raise e
 
-def query_remote():
+def query_remote(s):
   data = json.loads(s.recv(1024).decode())
   while data:
     if data == 'name':

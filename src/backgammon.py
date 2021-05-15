@@ -415,6 +415,7 @@ class Player(object):
     self.name = name
     self.started = False
     self.color = None
+    self.is_remote = False
 
   @contract(color='str', opponent_name='str')
   def start_game(self, color, opponent_name):
@@ -466,11 +467,9 @@ class Player(object):
       else: break
     return turn
 
-  def check_winner(self):
-    for posn in self.color.posns:
-      if posn != HOME:
-        return False
-    return True
+  def _is_winner(self):
+    if self.color.posns.count(HOME) == 15: return True
+    else: return False
 
   @contract(board='$Board', has_won='bool')
   def end_game(self, board, has_won):
@@ -521,5 +520,6 @@ class RemotePlayer(BopPlayer, RandomPlayer):
   def __init__(self, name, port):
     super().__init__(name)
     self.port = port
+    self.is_remote = True
 
   
