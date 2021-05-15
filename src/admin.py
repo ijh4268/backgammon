@@ -117,7 +117,6 @@ class BackgammonAdmin(object):
     if remote_has_won:
       self.winner = self.remote_player
 
-    print(json.dumps({"winner-name": self.winner.name})) #print admin-game-over
-    self.connection.sendall(json.dumps({"winner-name": self.winner.name}).encode() + '\n'.encode())
+    sys.stdout.write(json.dumps({"winner-name": self.winner.name})) #print admin-game-over
     self.connection.close()
     # self.__init__(self.config)
