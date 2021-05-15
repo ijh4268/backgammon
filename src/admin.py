@@ -20,6 +20,8 @@ class BackgammonAdmin(object):
     self.winner = None
     self.board = bg.Board()
     self.dice = bg.Dice()
+    data = {"name":[[[[[[["wrong name"]]]]]]]}
+    check('ValidateNameData', data)
     self.init_game()
 
   # TODO: Initialize Game func (takes in the admin config and sets up the two Players)
@@ -104,7 +106,6 @@ class BackgammonAdmin(object):
     self.end_game()
     
   def ban_cheater(self):
-    self.connection.close()
     self.remote_player = bg.RandomPlayer('Malnati')
     self.remote_player.color = self.board.get_color(bg.White())
 
