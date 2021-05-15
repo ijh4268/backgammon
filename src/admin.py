@@ -27,7 +27,7 @@ class BackgammonAdmin(object):
 
     # Setup remote player
     port = self.config[PORT]
-    self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.socket = socket.socket()
     server_address = ('', port)
     self.socket.bind(server_address)
     self.socket.listen(1)
@@ -39,7 +39,7 @@ class BackgammonAdmin(object):
       self.connection, client_address = self.socket.accept()
   
       try:
-        self.connection.sendall(json.dumps('name').encode())
+        self.connection.sendall('name'.encode())
         remote_name = json.loads(self.connection.recv(1024).decode())
         self.remote_player = bg.RemotePlayer(remote_name)
         self.remote_player.color = bg.White()
