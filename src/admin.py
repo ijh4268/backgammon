@@ -20,8 +20,6 @@ class BackgammonAdmin(object):
     self.winner = None
     self.board = bg.Board()
     self.dice = bg.Dice()
-    data = {"name":[[[[[[["wrong name"]]]]]]]}
-    check('ValidateNameData', data)
     self.init_game()
 
   # TODO: Initialize Game func (takes in the admin config and sets up the two Players)
