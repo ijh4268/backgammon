@@ -1,13 +1,21 @@
 import backgammon as bg
-from contracts.interface import ContractException, ContractNotRespected
+from contracts.interface import ContractNotRespected
 from constants import *
 from parse_data import get_moves_from_turn, create_moves
 from contracts import new_contract, check
 import json, sys, socket
 
 @new_contract
+def ValidateTurns(turns):
+  for turn in turns:
+    if type(turn) == list:
+      result = bg.CPos(turn[0]) and bg.CPos(turn[1])
+    else: return False
+  return result
+
+@new_contract
 def ValidateTurnData(data):
-  return type(data) == dict and 'turn' in data.keys()
+  return type(data) == dict and 'turn' in data.keys() and ValidateTurns(data['turn'])
 
 @new_contract
 def ValidateNameData(data):
@@ -52,7 +60,6 @@ class BackgammonAdmin(object):
     try:
       check('ValidateNameData', remote_name)
       name = remote_name['name']
-      if not name: self.ban_cheater()
       self.remote_player = bg.RemotePlayer(name, port)
       self.remote_player.color = self.board.get_color(bg.White())
 
@@ -88,19 +95,17 @@ class BackgammonAdmin(object):
           data = json.loads(self.connection.recv(1024).decode())
           check('ValidateTurnData', data)
           turn = data['turn']
-          if not turn: self.ban_cheater()
           get_moves_from_turn(turn, self.current_player.color)
           turn = create_moves(turn)
           if self.board.play_move(self.remote_player.color, self.dice, turn):
-            # advance to the next player
-            self.current_player = self.local_player if self.current_player != self.local_player else self.remote_player
-            continue
+           pass
           else:
             self.ban_cheater()
         except ContractNotRespected:
           self.ban_cheater()
       else: raise ValueError('Something went wrong with player swapping')
-
+      #* Swap players
+      self._swap()
     self.end_game()
     
   def ban_cheater(self):
@@ -128,3 +133,6 @@ class BackgammonAdmin(object):
     sys.stdout.write(json.dumps({"winner-name": self.winner.name})) #print admin-game-over
     self.connection.close()
     # self.__init__(self.config)
+
+  def _swap(self):
+    self.current_player = self.local_player if self.current_player != self.local_player else self.remote_player
