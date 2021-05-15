@@ -106,6 +106,7 @@ class BackgammonAdmin(object):
   def ban_cheater(self):
     self.remote_player = bg.RandomPlayer('Malnati')
     self.remote_player.color = self.board.get_color(bg.White())
+    self.connection.close()
 
   def end_game(self):
     local_has_won = self.local_player.is_winner(self.board)
