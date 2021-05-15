@@ -3,4 +3,4 @@
 # This is the file "run": it runs the actual submission
 
 cd ../../../src
-python networking.py
+python admin_tester.py
