@@ -51,20 +51,20 @@ class BackgammonAdmin(object):
     remote_name = json.loads(self.connection.recv(1024).decode())
     try:
       check('ValidateNameData', remote_name)
+      name = remote_name['name']
+      if not name: self.ban_cheater()
+      self.remote_player = bg.RemotePlayer(name, port)
+      self.remote_player.color = self.board.get_color(bg.White())
+
+      #send start-game object
+      self.connection.sendall(json.dumps({'start-game': [self.remote_player.color.name(), self.local_player.name]}).encode() + '\n'.encode())
+      response = json.loads(self.connection.recv(1024).decode())
+
+      while response:
+        if response == 'okay': break
     except ContractNotRespected:
       self.ban_cheater()
-    name = remote_name['name']
-    if not name: self.ban_cheater()
-    self.remote_player = bg.RemotePlayer(name, port)
-    self.remote_player.color = self.board.get_color(bg.White())
-
-    #send start-game object
-    self.connection.sendall(json.dumps({'start-game': [self.remote_player.color.name(), self.local_player.name]}).encode() + '\n'.encode())
-    response = json.loads(self.connection.recv(1024).decode())
-
-    while response:
-      if response == 'okay': break
-  
+    
     self.take_turns()
 
   def take_turns(self):
@@ -97,7 +97,7 @@ class BackgammonAdmin(object):
             continue
           else:
             self.ban_cheater()
-        except ContractException:
+        except ContractNotRespected:
           self.ban_cheater()
       else: raise ValueError('Something went wrong with player swapping')
 
@@ -112,10 +112,13 @@ class BackgammonAdmin(object):
     local_has_won = self.local_player.is_winner(self.board)
     remote_has_won = self.remote_player.is_winner(self.board)
     self.local_player.end_game(self.board, local_has_won)
-    self.connection.sendall(json.dumps({"end-game": [self.board.as_dict(), remote_has_won]}).encode() + '\n'.encode())
-    while True:
-      msg = json.loads(self.connection.recv(1024).decode())
-      if msg == "okay": break
+    if isinstance(self.remote_player, bg.RemotePlayer):
+      self.connection.sendall(json.dumps({"end-game": [self.board.as_dict(), remote_has_won]}).encode() + '\n'.encode())
+      while True:
+        msg = json.loads(self.connection.recv(1024).decode())
+        if msg == "okay": break
+    else:
+      self.remote_player.end_game(self.board, remote_has_won)
 
     if local_has_won:
       self.winner = self.local_player
