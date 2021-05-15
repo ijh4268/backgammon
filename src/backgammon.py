@@ -175,9 +175,6 @@ class Dice(object):
       combos = self.values
     return sorted(combos, reverse=True)
 
-  def to_json(self):
-    return json.dumps(self.values)
-
 # ============================================================================
 class Board(object):
   @contract (black_posns='list[15](int|str)|None', white_posns='list[15](int|str)|None')
@@ -191,8 +188,11 @@ class Board(object):
       
     self.special_feature = 'board'
 
+  def as_dict(self):
+    return {BLACK:self.black.posns, WHITE:self.white.posns}
+    
   def to_json(self):
-    return json.dumps({BLACK:self.black.posns, WHITE:self.white.posns})
+    return json.dumps(self.as_dict())
 
   def _get_opponent(self, color):
     return self.black if color.name() == WHITE else self.white
