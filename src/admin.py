@@ -98,8 +98,8 @@ class BackgammonAdmin(object):
 
 
   def end_game(self):
-    local_has_won = self.local_player.is_winner()
-    remote_has_won = self.remote_player.is_winner()
+    local_has_won = self.local_player.is_winner(self.board)
+    remote_has_won = self.remote_player.is_winner(self.board)
     self.local_player.end_game(self.board, local_has_won)
     self.connection.sendall(json.dumps({"end-game": [self.board.as_dict(), remote_has_won]}).encode() + '\n'.encode())
     while True:
