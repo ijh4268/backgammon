@@ -91,6 +91,8 @@ class BackgammonAdmin(object):
           get_moves_from_turn(turn, self.current_player.color)
           turn = create_moves(turn)
           if self.board.play_move(self.remote_player.color, self.dice, turn):
+            # advance to the next player
+            self.current_player = self.local_player if self.current_player != self.local_player else self.remote_player
             continue
           else:
             self.ban_cheater()
@@ -98,7 +100,6 @@ class BackgammonAdmin(object):
           self.ban_cheater()
       else: raise ValueError('Something went wrong with player swapping')
 
-      self.current_player = self.local_player if self.current_player != self.local_player else self.remote_player # advances the turn at the end of each turn
     self.end_game()
     
   def ban_cheater(self):
