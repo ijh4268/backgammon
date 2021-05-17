@@ -6,6 +6,7 @@ from contracts import contract, new_contract
 from copy import deepcopy
 from sort import sort
 import json, random
+import sys
 
 #---------------------------- Backgammon Contracts ---------------------------
 
@@ -87,8 +88,10 @@ class Black(Color):
     if move.dest_cpos == HOME: return move.source_cpos > self.home()
     else: return move.source_cpos > move.dest_cpos
   def farthest(self):
-    only_nums = filter(lambda x: type(x) == int, self.posns)
-    return max(only_nums)
+    only_nums = list(filter(lambda x: type(x) == int, self.posns))
+    if only_nums:
+      return max(only_nums)
+    else: return False
   def get_destination(self, posn, die):
     die = die * self.dir_of_travel()
     if posn == BAR:
@@ -116,8 +119,10 @@ class White(Color):
     if move.dest_cpos == HOME: return move.source_cpos < self.home()
     else: return move.source_cpos < move.dest_cpos
   def farthest(self):
-    only_nums = filter(lambda x: type(x) == int, self.posns)
-    return min(only_nums)
+    only_nums = list(filter(lambda x: type(x) == int, self.posns))
+    if only_nums:
+      return min(only_nums)
+    else: return False
   def get_destination(self, posn, die):
     die = die * self.dir_of_travel()
     if posn == BAR:
@@ -295,7 +300,7 @@ class Board(object):
     color = self.get_color(move.color)
     posns = color.posns
     if max(dice.values) not in posns \
-    and move.source_cpos == color.farthest():
+    and move.source_cpos == color.farthest() or self.query(Query(color, HOME)) == 15:
       return True
     else:
       return False
@@ -334,6 +339,7 @@ class Board(object):
       occupants_next_die = self.color_check(move.dest_cpos)
 
       valid_moves = self.get_possible_moves(color, dice)
+      
       # If there is no checker at src, then the move is invalid
       if self.src_exists(move) and move.as_list in valid_moves:
         valid_moves.remove(move.as_list)
@@ -346,7 +352,8 @@ class Board(object):
         return False
     
     # If there are valid moves, but no turn, then the turn is invalid
-    if valid_moves and not turn: 
+    if valid_moves and not turn:
+       
       return False
     # If there are valid moves and dice left over, check to see if more dice could have been used
     elif valid_moves and dice.values and self._can_use_more_dice(last_move, valid_moves, dice):
@@ -366,8 +373,9 @@ class Board(object):
         destination_valid_move = color.get_destination(move_dest, max(dice.original_combos)-val)
         # if we end up in the same place, then we have no better move
         # or, if we end up at home with dice left over, then we could have used those dice before bearing off
-        if destination_next_die != destination_valid_move \
-        or (destination_valid_move == destination_next_die == HOME): return True
+        if ((destination_valid_move == HOME or destination_next_die == HOME) \
+        and self.can_bear_off(color) and self._bear_off(Move(color, move[0], move[1]), dice)) or destination_next_die != destination_valid_move != HOME: 
+          return True
     return False
 
   @contract(move='$Move', color='$Color', dice='$Dice', occupants='$Color|None')
@@ -419,6 +427,7 @@ class Player(object):
     self.color = None
     self.opponent = None
     self.is_remote = False
+    self.has_failed = False
 
   @contract(color='str', opponent_name='str')
   def start_game(self, color, opponent_name):
@@ -444,6 +453,7 @@ class Player(object):
         return [move.as_list for move in random_turn] 
       except AssertionError:
         # reset the board if the turn is not valid and try again
+        self.has_failed = True
         board = deepcopy(board_reset) 
         board_copy = deepcopy(board_reset)
         dice = deepcopy(dice_reset)
@@ -515,7 +525,8 @@ class BopPlayer(Player):
     if not result:
       result = max(moves_distances, key=moves_distances.get)
       if list(moves_distances.values()).count(moves_distances[result]) == len(moves_distances) \
-      or result.dest_cpos == HOME: result = random.choice(valid_moves)
+      or result.dest_cpos == HOME \
+      or self.has_failed : result = random.choice(valid_moves)
     distance = moves_distances[result]
     if distance in dice.values:
       dice.values.remove(distance)

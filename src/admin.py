@@ -43,6 +43,7 @@ class BackgammonAdmin(object):
 
     self.local_player.color = self.board.get_color(bg.Black())
     self.current_player = self.local_player
+    # self.ban_cheater()
 
     # Setup remote player
     port = self.config[PORT]
@@ -107,12 +108,16 @@ class BackgammonAdmin(object):
         except ContractNotRespected or ContractException:
           self.ban_cheater()
       else: raise ValueError('Something went wrong with player swapping')
-      #* Swap players
+      # Swap players
+      # output = open("/Users/isaachenry/Projects/software_construction/src/log/7.1_boards.json", 'w')
+      # json.dump([self.board.as_dict(),self.dice.values], output)
       self._swap()
+    # output.close()
     self.end_game()
     
+    
   def ban_cheater(self):
-    self.remote_player = bg.BopPlayer('Malnati')
+    self.remote_player = bg.RandomPlayer('Malnati')
     self.remote_player.color = self.board.get_color(bg.White())
     self.connection.close()
 
