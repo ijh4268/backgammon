@@ -337,7 +337,6 @@ class Board(object):
       posns = color.posns
       last_move = move
       occupants_next_die = self.color_check(move.dest_cpos)
-
       valid_moves = self.get_possible_moves(color, dice)
       
       # If there is no checker at src, then the move is invalid
@@ -353,7 +352,6 @@ class Board(object):
     
     # If there are valid moves, but no turn, then the turn is invalid
     if valid_moves and not turn:
-       
       return False
     # If there are valid moves and dice left over, check to see if more dice could have been used
     elif valid_moves and dice.values and self._can_use_more_dice(last_move, valid_moves, dice):
@@ -364,17 +362,21 @@ class Board(object):
   @contract(last_move='$Move', valid_moves='list(list[2](int|str))', dice='$Dice', returns='bool')
   def _can_use_more_dice(self, last_move, valid_moves, dice):
     color = last_move.color
+    opponent = self._get_opponent(color)
     for val in dice.values:
       for move in valid_moves:
         move_dest = move[1]
         # where we end up if we use the last die
         destination_next_die = color.get_destination(last_move.dest_cpos, val)
+        opponents_next_die = self.query(Query(opponent, destination_next_die))
         # where we end up if we used the other dice values first
         destination_valid_move = color.get_destination(move_dest, max(dice.original_combos)-val)
+        opponents_valid_move = self.query(Query(opponent, destination_valid_move))
+        # if opponents_next_die > 1 and opponents_valid_move > 1: continue
         # if we end up in the same place, then we have no better move
         # or, if we end up at home with dice left over, then we could have used those dice before bearing off
         if ((destination_valid_move == HOME or destination_next_die == HOME) \
-        and self.can_bear_off(color) and self._bear_off(Move(color, move[0], move[1]), dice)) or destination_next_die != destination_valid_move != HOME: 
+        and self.can_bear_off(color) and self._bear_off(Move(color, move[0], move[1]), dice)) or (destination_next_die != HOME and destination_valid_move != HOME): 
           return True
     return False
 
@@ -520,7 +522,7 @@ class BopPlayer(Player):
     moves_distances = {move: move.get_distance() for move in valid_moves}
     result = None
     for move in valid_moves:
-      if board.is_bop(move):
+      if board.is_bop(move) and not self.has_failed:
         result = move
     if not result:
       result = max(moves_distances, key=moves_distances.get)

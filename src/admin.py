@@ -79,7 +79,9 @@ class BackgammonAdmin(object):
     self.take_turns()
 
   def take_turns(self):
+    turn_count = 0
     while not self.board.finished():
+      turn_count += 1
       self.dice.roll() # roll new dice values at the beginning of each turn
 
       #local player turn
@@ -138,7 +140,7 @@ class BackgammonAdmin(object):
     if remote_has_won:
       self.winner = self.remote_player
 
-    sys.stdout.write(json.dumps({"winner-name": self.winner.name})) #print admin-game-over
+    sys.stdout.write(json.dumps({"winner-name": self.winner.name}) + '\n') #print admin-game-overb
     self.connection.close()
     # self.__init__(self.config)
 
