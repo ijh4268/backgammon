@@ -79,9 +79,7 @@ class BackgammonAdmin(object):
     self.take_turns()
 
   def take_turns(self):
-    turn_count = 0
     while not self.board.finished():
-      turn_count += 1
       self.dice.roll() # roll new dice values at the beginning of each turn
 
       #local player turn

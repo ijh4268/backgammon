@@ -6,5 +6,4 @@ from constants import *
 config = parse_json()[0]
 
 # create instance of BackgammonAdmin
-while True:
-  BackgammonAdmin(config)
+BackgammonAdmin(config)

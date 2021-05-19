@@ -330,7 +330,7 @@ class Board(object):
       return False
 
   @contract(color='$Color', dice='$Dice', turn='ValidateTurn', returns='bool|*')
-  def play_move(self, color, dice, turn):
+  def play_move(self, color, dice, turn, failed_turns=0):
     if not turn: valid_moves = self.get_possible_moves(color, dice)
     for move in turn:
       color = self.get_color(color)
@@ -354,7 +354,7 @@ class Board(object):
     if valid_moves and not turn:
       return False
     # If there are valid moves and dice left over, check to see if more dice could have been used
-    elif valid_moves and dice.values and self._can_use_more_dice(last_move, valid_moves, dice):
+    elif valid_moves and dice.values and self._can_use_more_dice(last_move, valid_moves, dice) and failed_turns < 20:
       return False
     else:
       return self
@@ -362,16 +362,13 @@ class Board(object):
   @contract(last_move='$Move', valid_moves='list(list[2](int|str))', dice='$Dice', returns='bool')
   def _can_use_more_dice(self, last_move, valid_moves, dice):
     color = last_move.color
-    opponent = self._get_opponent(color)
     for val in dice.values:
       for move in valid_moves:
         move_dest = move[1]
         # where we end up if we use the last die
         destination_next_die = color.get_destination(last_move.dest_cpos, val)
-        opponents_next_die = self.query(Query(opponent, destination_next_die))
         # where we end up if we used the other dice values first
         destination_valid_move = color.get_destination(move_dest, max(dice.original_combos)-val)
-        opponents_valid_move = self.query(Query(opponent, destination_valid_move))
         # if opponents_next_die > 1 and opponents_valid_move > 1: continue
         # if we end up in the same place, then we have no better move
         # or, if we end up at home with dice left over, then we could have used those dice before bearing off
@@ -447,15 +444,17 @@ class Player(object):
     dice_copy = deepcopy(dice)
     board_reset = deepcopy(board)
     dice_reset = deepcopy(dice)
+    fails = 0
     self.color = board_copy.get_color(self.color)
     while True:
       try:
         random_turn = self._try_moves(board_copy, dice_copy)
-        assert board.play_move(self.color, dice, random_turn)
+        assert board.play_move(self.color, dice, random_turn, fails)
         return [move.as_list for move in random_turn] 
       except AssertionError:
         # reset the board if the turn is not valid and try again
         self.has_failed = True
+        fails += 1
         board = deepcopy(board_reset) 
         board_copy = deepcopy(board_reset)
         dice = deepcopy(dice_reset)
