@@ -354,7 +354,7 @@ class Board(object):
     if valid_moves and not turn:
       return False
     # If there are valid moves and dice left over, check to see if more dice could have been used
-    elif valid_moves and dice.values and self._can_use_more_dice(last_move, valid_moves, dice) and failed_turns < 20:
+    elif valid_moves and dice.values and self._can_use_more_dice(last_move, valid_moves, dice) and failed_turns < FAIL_CAP:
       return False
     else:
       return self
@@ -373,7 +373,7 @@ class Board(object):
         # if we end up in the same place, then we have no better move
         # or, if we end up at home with dice left over, then we could have used those dice before bearing off
         if ((destination_valid_move == HOME or destination_next_die == HOME) \
-        and self.can_bear_off(color) and self._bear_off(Move(color, move[0], move[1]), dice)) or (destination_next_die != HOME and destination_valid_move != HOME): 
+        and self.can_bear_off(color) and self._bear_off(Move(color, move[0], move[1]), dice)) or (destination_next_die != destination_valid_move != HOME): 
           return True
     return False
 
@@ -535,11 +535,11 @@ class BopPlayer(Player):
     return result
 
 class RemotePlayer(Player):
-  def __init__(self, name, port):
+  def __init__(self, name, client, address):
     super().__init__(name)
-    self.port = port
     self.is_remote = True
+    self.client = client
+    self.addr = address 
     self.color = None
     self.opponent
-
   
