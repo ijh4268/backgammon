@@ -1,6 +1,7 @@
 from math import log2
 
 from contracts.interface import ContractNotRespected
+from admin import BackgammonAdmin
 from constants import *
 import socket, sys, json, names
 from threading import Thread
@@ -90,7 +91,10 @@ class RoundRobin(object):
 
   #TODO: scheduling algorithm 
   def create_schedule(self):
-    pass
+    for player in self.players:
+        for opponent in self.players:
+            if player != opponent and self.is_unique_matchup([player, opponent]):
+                self.schedule.append([player, opponent])
   
   @contract(cheater='Player')
   def handle_cheaters(self, cheater):
@@ -109,6 +113,14 @@ class RoundRobin(object):
     # sort the results by number of wins
     self.results.sort(key=lambda x: x[1], reverse=True)
     # return the winners with wins and losses
+  
+  def is_unique_matchup(self, matchup):
+    reverse = [matchup[1], matchup[0]]
+    if matchup in self.schedule:
+        return False
+    elif reverse in self.schedule:
+        return False
+    else: return True
 
 
 class SingleElim(object):
@@ -131,12 +143,25 @@ class SingleElim(object):
     self.new_matchups()
 
   def run_tournament(self):
+    admin = None # TODO: create admin instance
     while len(self.bracket) >= 1: #loop until final match
       bracket_copy = self.bracket
       for matchup in bracket_copy:
         # real player vs real player
+        # TODO: initialize admin with two players in matchup
+        if admin.take_turns() is Player(): #! checking if admin.take_turns() returns a player (aka cheater)
+          self.advance_winner(matchup, admin.take_turns().opponent)
+        else:
+          self.advance_winner(matchup, admin.winner)
+          admin.reset()
 
         # real player vs filler
+        # TODO: initialize admin with player in matchup + filler
+        if admin.take_turns() is Player(): #! checking if admin.take_turns() returns a player (aka cheater)
+          self.advance_winner(matchup, admin.take_turns().opponent)
+        else:
+          self.advance_winner(matchup, admin.winner)
+          admin.reset()     
 
         # filler vs filler
         if "Filler" in matchup[0].name and "Filler" in matchup[1].name:
@@ -153,9 +178,6 @@ class SingleElim(object):
       sys.stdout.write(json.dumps(False) + '\n')
     else:
       sys.stdout.write(json.dumps(self.bracket[0].name) + '\n')
-
-  def handle_cheaters(self, player):
-    pass
 
   def advance_winner(self, matchup, winner):
     self.bracket.remove(matchup)
