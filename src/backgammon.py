@@ -1,13 +1,13 @@
 from abc import ABCMeta, abstractmethod
-from contracts.interface import ContractNotRespected
+from contracts.interface import ContractNotRespected, ContractException
 from parse_data import get_moves_from_turn, create_moves
 from constants import *
-from contracts import contract, new_contract
+from contracts import contract, new_contract, check, disable_all
 from copy import deepcopy
 from sort import sort
-import json, random
-import sys
+import json, random, uuid
 
+disable_all()
 #---------------------------- Backgammon Contracts ---------------------------
 
 @new_contract
@@ -33,6 +33,20 @@ def ValidateTurn(turn):
         else: return False
     return True
 
+@new_contract
+def ValidateTurns(turns):
+  if type(turns) == list:
+    if len(turns) == 0: return True
+    for turn in turns:
+      if type(turn) == list:
+        result = bg.CPos(turn[0]) and bg.CPos(turn[1])
+      else: result = False
+  else: result = False
+  return result
+
+@new_contract
+def ValidateTurnData(data):
+  return type(data) == dict and TURN in data.keys() and ValidateTurns(data[TURN])
 #----------------------------- Backgammon Classes ----------------------------
 # ============================================================================
 class Color(metaclass=ABCMeta):
@@ -427,16 +441,15 @@ class Player(object):
     self.opponent = None
     self.is_remote = False
     self.has_failed = False
+    self.ident = uuid.uuid4()
+    self.is_cheater = False
 
   @contract(color='str', opponent_name='str')
   def start_game(self, color, opponent_name):
     if not self.started: self.started = True
-    else: raise RuntimeError('start_game was called before ')
-    # print('The game has started!')
-    self.color = color
-    # print(f'Your color is {color}')
+    else: raise RuntimeError('start_game was called twice before end_game')
     self.opponent = opponent_name
-    # print(f'Your opponent\'s name is {opponent_name}')
+    return OKAY
   
   @contract(board='$Board', dice='$Dice', returns='list(list[2](int|str))|bool')
   def turn(self, board, dice):
@@ -489,11 +502,9 @@ class Player(object):
   @contract(board='$Board', has_won='bool')
   def end_game(self, board, has_won):
     self.started = False
-    # print('Game over!')
     self.has_won = has_won
     self.final_board = board
-    # result_msg = 'won!' if has_won else 'lost!'
-    # print(f'You have ' + result_msg)
+  
 
 class RandomPlayer(Player):
   def __init__(self, name):
@@ -535,11 +546,59 @@ class BopPlayer(Player):
     return result
 
 class RemotePlayer(Player):
-  def __init__(self, name, client, address):
-    super().__init__(name)
-    self.is_remote = True
+  def __init__(self, client):
     self.client = client
-    self.addr = address 
+    try:
+      msg = json.dumps('name')
+      self.client.sendall(msg.encode() + '\n'.encode())
+      data = json.loads(client.recv(2048).decode())
+      check('ValidateNameData', data)
+      name = data[NAME]
+    except ContractNotRespected:
+      client.close()
+
+    super().__init__(name)
     self.color = None
     self.opponent
-  
+    
+  @contract(color='str', opponent_name='str')
+  def start_game(self, color, opponent_name):
+    self.client.send(json.dumps({START: [color, opponent_name]}).encode() + '\n'.encode())
+    msg = json.loads(self.client.recv(1024).decode())
+    if msg == OKAY: return
+    else: 
+      self.cheater = True
+      self.client.close()
+      return
+
+  @contract(board='$Board', dice='$Dice')
+  def turn(self, board, dice):
+    try:
+      self.client.send(json.dumps({TAKE_TURN: [board.as_dict(), dice.values]}).encode() + '\n'.encode())
+      data = json.loads(self.client.recv(1024).decode())
+      check('ValidateTurnData', data)
+      turn = data[TURN]
+      get_moves_from_turn(turn, self.color)
+      turn = create_moves(turn)
+      if board.play_move(self.color, dice, turn):
+        pass
+      else:
+        self.is_cheater = True
+        self.client.close()
+         # ! if a player cheats, admin shuts down game and returns cheater (so tournament manager can edit bracket)
+    except ContractNotRespected or ContractException:
+        self.is_cheater = True
+        self.client.close()
+
+  @contract(board='$Board', has_won='bool')
+  def end_game(self, board, has_won):
+    self.client.send(json.dumps({END: [board.as_dict(), has_won]}).encode() + '\n'.encode())
+    msg = json.loads(self.client.recv(1024).decode())
+    if msg == OKAY: return
+    else: 
+      self.cheater = True
+      self.client.close()
+      return
+    
+     
+    

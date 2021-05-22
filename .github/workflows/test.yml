@@ -12,7 +12,7 @@ jobs:
 
     env:
 
-      MAJOR: 7
+      MAJOR: 8
 
       MINOR: 1
 
