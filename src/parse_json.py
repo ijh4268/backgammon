@@ -1,7 +1,6 @@
 import sys
 import json
 import re
-from sort import sort
 
 data = []
 n = 10 
