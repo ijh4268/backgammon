@@ -9,7 +9,7 @@ START = 'start-game'
 END   = 'end-game'
 NAME  = 'name'
 OKAY  = 'okay'
-TURN = 'turn'
+TURN  = 'turn'
 TAKE_TURN  = 'take-turn'
 WINNER = 'winner-name'
 LOU = 'Lou'
@@ -38,9 +38,3 @@ HOST = 'host'
 PORT = 'port'
 LOCAL = 'local'
 
-FAIL_CAP = 20
-
-FILLER_NAMES = ["Filler Liam", "Filler Olivia", "Filler Noah", "Filler Emma", "Filler Oliver", \
-                "Filler Ava", "Filler Elijah", "Filler Charlotte", "Filler William", "Filler Sophia",
-                "Filler James", "Filler Amelia", "Filler Benjamin", "Filler Isabella", "Filler Lucas",
-                "Filler Mia", "Filler Henry", "Filler Evelyn", "Filler Harper", "Filler Isaac", "Filler Jacob"]

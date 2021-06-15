@@ -4,12 +4,10 @@ from contracts.interface import ContractNotRespected
 from admin import BackgammonAdmin
 from constants import *
 import socket, sys, json, names
-from threading import Thread
-from contracts import new_contract, check, contract, disable_all
+from contracts import new_contract, contract
 import backgammon as bg
 # Module to manage Backgammon tournaments
-#---------------------------- Tournament Contracts ---------------------------
-disable_all()
+#------------------------------ Tournament Contracts -----------------------------
 @new_contract
 def ValidateNameData(data):
   return type(data) == dict and NAME in data.keys() and type(data[NAME]) == str and data[NAME].find('Filler') == -1
@@ -49,27 +47,28 @@ class Tournament(object):
       if player.ident == ident: return player.name
     raise Exception('id not found')
 
-class RoundRobin(object):
+class RoundRobin(Tournament):
   def __init__(self, num_players, players):
     self.players = players
     self.num_players = num_players
     self.schedule = [] # probably want a list of tuples?
+    self.cheaters = []
     self.match_history = {player.ident:[] for player in self.players}
-    self.results = []
+    self.create_schedule()
     self.run_tournament()
 
-  def create_schedule(self):
+  def create_schedule(self):                 
     for player in self.players:
-        for opponent in self.players:
-            if player != opponent and self.is_unique_matchup((player, opponent)):
-                self.schedule.append((player, opponent))
+      for opponent in self.players:
+        if player.ident != opponent.ident and self.is_unique_matchup((player, opponent)):
+          self.schedule.append((player, opponent))
   
-  @contract(cheater='Player')
-  def handle_cheaters(self, cheater):
-    for cheater in cheater:
-      for player in self.match_history[cheater.ident]:
-        self.match_history[player.ident].append(cheater.ident)
-      self.match_history[cheater.ident] = []
+  def handle_cheaters(self):
+    for cheater in self.cheaters:
+      wins = self.match_history[cheater.ident] # get players the cheater won against
+      self.match_history[cheater.ident] = [] # clear the cheater's wins
+      for player in wins:
+        if not player.is_cheater: self.match_history[player.ident].append(cheater) # add the cheater to the wins for each player they won against
       
   def run_tournament(self):
     for match in self.schedule:
@@ -77,37 +76,44 @@ class RoundRobin(object):
       player2 = match[1]
 
       admin = BackgammonAdmin(player1, player2)
-      if admin.cheater: self.handle_cheaters(admin.cheater)
+      if admin.cheaters and admin.cheaters not in self.cheaters: self.cheaters = self.cheaters + admin.cheaters
       if not admin.winner: continue
-      else: self.match_history[admin.winner.ident].append(admin.loser.ident)
-  
+      else: self.match_history[admin.winner.ident].append(admin.loser)
+    self.end_tournament()
+
   def end_tournament(self):
+    self.handle_cheaters()
     for player in self.players:
       if isinstance(player, bg.RemotePlayer):
         player.client.close()
 
+    results = self.get_results()
+    # return the winners with wins and losses
+    sys.stdout.write(json.dumps(results))
+  
+  def get_results(self):
+    results = []
     for playerid in self.match_history:
       wins = len(self.match_history[playerid])
-      losses = (self.num_players - 1) - wins
-      self.results.append([self._get_name_by_id(playerid), wins, losses])
+      potential_losses = (self.num_players - 1) - wins
+      losses = potential_losses if potential_losses >= 0 else 0
+      results.append([self._get_name_by_id(playerid), wins, losses])
     # sort the results by number of wins
-    self.results.sort(key=lambda x: x[1], reverse=True)
-    # return the winners with wins and losses
-    sys.stdout.write(json.dumps(self.results))
-  
+    results.sort(key=lambda x: x[1], reverse=True)
+    return results
+    
   def is_unique_matchup(self, matchup):
-    reverse = [matchup[1], matchup[0]]
+    reverse = (matchup[1], matchup[0])
     if matchup in self.schedule:
         return False
     elif reverse in self.schedule:
         return False
     else: return True
 
-class SingleElim(object):
+class SingleElim(Tournament):
   @contract(num_players='int', players='list(Player)')
   def __init__(self, num_players, players):
     self.num_players = num_players
-    self.num_fillers = 0
     self.players = players
     self.bracket = []
     self.waiting_room = self.players
@@ -116,29 +122,23 @@ class SingleElim(object):
     self.run_tournament()
 
   def create_bracket(self):
-    while not log2(self.num_players + self.num_fillers).is_integer() \
-      or log2(self.num_players + self.num_fillers) == 0:
-      self.num_fillers += 1
+    num_fillers = 0
+    while not log2(self.num_players + num_fillers).is_integer():
+      num_fillers += 1
       filler = bg.RandomPlayer("Filler " + names.get_first_name())
       self.players.append(filler)
-      self.waiting_room = self.players
+      self.waiting_room = self.players  
 
     self.new_matchups()
 
   def run_tournament(self):
-    while self.bracket: #loop until final matchup
-      for matchup in self.bracket:
-        # filler vs filler
-        # if "Filler" in matchup[0].name and "Filler" in matchup[1].name:
-        #   admin = BackgammonAdmin()
-        #   self.advance_winner(matchup, matchup[0])
+    while self.bracket and len(self.waiting_room) != 1:
+      for matchup in self.bracket: #loop until final matchup
         player1 = matchup[0]
         player2 = matchup[1]
-        # else:
+
         admin = BackgammonAdmin(player1, player2)
-        self.advance_winner(matchup, admin.winner)
-      
-      if len(self.waiting_room) == 1: break # end tournament when only one player left in bracket (not to be confused with one matchup left)
+        self.advance_winner(admin.winner)
       
       self.new_matchups()
     self.end_tournament()
@@ -153,15 +153,10 @@ class SingleElim(object):
     else:
       sys.stdout.write(json.dumps(self.waiting_room[0].name))
 
-  def advance_winner(self, matchup, winner):
-    self.bracket.remove(matchup)
+  def advance_winner(self, winner):
     self.waiting_room.append(winner)
     
-  def new_matchups(self):    
-    while self.waiting_room:
-      matchup = [self.waiting_room.pop(), self.waiting_room.pop()]
-      self.bracket.append(matchup)
-    
-  #* if this doesn't work, then we can add a new attribute "waiting_room" to hold the individual players after they win their match
-  #* this means bracket will hold purely matchups and "waiting_room" will hold purely individuals
-  #* then make a new bracket with contents of waiting_room
+  def new_matchups(self):
+    if len(self.waiting_room) >= 2 and len(self.waiting_room) % 2 == 0:
+      self.bracket = list(zip(*(iter(self.waiting_room),) * 2))
+      self.waiting_room = []

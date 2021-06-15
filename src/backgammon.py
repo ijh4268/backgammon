@@ -2,12 +2,13 @@ from abc import ABCMeta, abstractmethod
 from contracts.interface import ContractNotRespected, ContractException
 from parse_data import get_moves_from_turn, create_moves
 from constants import *
-from contracts import contract, new_contract, check, disable_all
-from copy import deepcopy
+from contracts import contract, new_contract, check
 from sort import sort
+from collections import Counter
+from func_timeout import func_timeout
 import json, random, uuid
 
-disable_all()
+
 #---------------------------- Backgammon Contracts ---------------------------
 
 @new_contract
@@ -28,7 +29,7 @@ def ValidateDice(dice):
 @new_contract
 def ValidateTurn(turn):
     for move in turn:
-        if isinstance(move.color, Color) and CPos(move.source_cpos) and CPos(move.dest_cpos):
+        if CPos(move[0]) and CPos(move[1]):
             continue
         else: return False
     return True
@@ -39,7 +40,7 @@ def ValidateTurns(turns):
     if len(turns) == 0: return True
     for turn in turns:
       if type(turn) == list:
-        result = bg.CPos(turn[0]) and bg.CPos(turn[1])
+        result = CPos(turn[0]) and CPos(turn[1])
       else: result = False
   else: result = False
   return result
@@ -85,7 +86,7 @@ class Color(metaclass=ABCMeta):
 # ============================================================================
 class Black(Color):
   def __init__(self, posns=BLACK_INIT):
-    self.posns = posns
+    self.posns = sort(posns, 'board')
 
   def name(self):
     return BLACK
@@ -98,14 +99,18 @@ class Black(Color):
   def dir_of_travel(self):
     return -1
   def correct_dir(self, move):
-    if move.source_cpos == BAR: return self.bar() > move.dest_cpos
-    if move.dest_cpos == HOME: return move.source_cpos > self.home()
-    else: return move.source_cpos > move.dest_cpos
+    if move.src_cpos == BAR: return self.bar() > move.dest_cpos
+    if move.dest_cpos == HOME: return move.src_cpos > self.home()
+    else: return move.src_cpos > move.dest_cpos
   def farthest(self):
     only_nums = list(filter(lambda x: type(x) == int, self.posns))
     if only_nums:
       return max(only_nums)
     else: return False
+  def get_dist_from_home(self, cpos):
+    if cpos == BAR: return self.bar()
+    elif cpos == HOME: return self.home()
+    else: return cpos
   def get_destination(self, posn, die):
     die = die * self.dir_of_travel()
     if posn == BAR:
@@ -113,10 +118,9 @@ class Black(Color):
     elif posn == HOME or posn + die <= self.home() : return HOME
     else: return posn + die
   
-
 class White(Color):
   def __init__(self, posns=WHITE_INIT):
-    self.posns = posns
+    self.posns = sort(posns, 'board')
 
   def name(self):
     return WHITE
@@ -129,21 +133,24 @@ class White(Color):
   def dir_of_travel(self):
     return 1
   def correct_dir(self, move):
-    if move.source_cpos == BAR: return self.bar() < move.dest_cpos
-    if move.dest_cpos == HOME: return move.source_cpos < self.home()
-    else: return move.source_cpos < move.dest_cpos
+    if move.src_cpos == BAR: return self.bar() < move.dest_cpos
+    if move.dest_cpos == HOME: return move.src_cpos < self.home()
+    else: return move.src_cpos < move.dest_cpos
   def farthest(self):
     only_nums = list(filter(lambda x: type(x) == int, self.posns))
     if only_nums:
       return min(only_nums)
     else: return False
+  def get_dist_from_home(self, cpos):
+    if cpos == HOME: return self.bar()
+    elif cpos == BAR: return self.home()
+    else: return self.home() - cpos
   def get_destination(self, posn, die):
     die = die * self.dir_of_travel()
     if posn == BAR:
       return self.bar()+die
     elif posn == HOME or posn + die >= self.home(): return HOME
     else: return posn + die
-
      
 # ============================================================================
 class Query(object):
@@ -156,29 +163,30 @@ class Query(object):
     return json.dumps([self.color.name, self.cpos])
 # ============================================================================
 class Move(object):
-  @contract(color='$Color', source_cpos='CPos', dest_cpos='CPos')
-  def __init__(self, color, source_cpos, dest_cpos):
+  @contract(color='$Color', src_cpos='CPos', dest_cpos='CPos')
+  def __init__(self, color, src_cpos, dest_cpos):
     self.color = color
-    self.source_cpos = source_cpos
+    self.src_cpos = src_cpos
     self.dest_cpos = dest_cpos
-    self.as_list = [self.source_cpos, self.dest_cpos]
+    self.as_list = [self.src_cpos, self.dest_cpos]
 
   def get_distance(self):
-    if self.source_cpos == BAR:
+    if self.src_cpos == BAR:
       return abs(self.dest_cpos - self.color.bar()) 
-    if type(self.source_cpos) == int and type(self.dest_cpos) == int:
-      return abs(self.source_cpos - self.dest_cpos)
+    if type(self.src_cpos) == int and type(self.dest_cpos) == int:
+      return abs(self.src_cpos - self.dest_cpos)
     if self.dest_cpos == HOME:
-      return abs(self.source_cpos - self.color.home())
+      return abs(self.src_cpos - self.color.home())
     
   def to_json(self):
-    return json.dumps([self.color.name, self.source_cpos, self.dest_cpos])
+    return json.dumps([self.color.name, self.src_cpos, self.dest_cpos])
 # ============================================================================
 class Dice(object):
   @contract(values='ValidateDice|list[0]')
   def __init__(self, values=[]):
     self.values = values
     self.original_combos = self.combos()
+    self.original_values = values.copy()
   
   def roll(self):
     self.values = [random.randint(1, 6) for i in range(0, 2)]
@@ -194,6 +202,9 @@ class Dice(object):
     else:
       combos = self.values
     return sorted(combos, reverse=True)
+  
+  def reset(self):
+    return Dice(self.original_values)
 
 # ============================================================================
 class Board(object):
@@ -227,7 +238,11 @@ class Board(object):
   @contract(moves='list($Move)')
   def make_moves(self, moves):
     for move in moves:
-      self.make_move(move)
+      if self.is_bop(move):
+        self.make_move(move)
+        opponent = self._get_opponent(move.color)
+        self.bop(opponent, move.dest_cpos)
+      else: self.make_move(move)
 
   # Querys the board and returns the number of pieces in a particular cpos
   @contract(query='$Query', returns='int')
@@ -265,7 +280,7 @@ class Board(object):
     posns.remove(cpos)
     posns.append(BAR)
     self._sort_board()
-
+    
   # helper method to make sure the board is always sorted
   def _sort_board(self):
     self.black.posns = sort(self.black.posns, self.special_feature)
@@ -276,8 +291,16 @@ class Board(object):
   def make_move(self, move):
     color = self.get_color(move.color)
     posns = color.posns
-    posns.remove(move.source_cpos)
+    posns.remove(move.src_cpos)
     posns.append(move.dest_cpos)
+    self._sort_board()
+
+  @contract(move='$Move')
+  def undo(self, move):
+    color = self.get_color(move.color)
+    posns = color.posns
+    posns.remove(move.dest_cpos)
+    posns.append(move.src_cpos)
     self._sort_board()
 
   # Checks if there is a checker in the src position (given by the Move object)
@@ -285,7 +308,7 @@ class Board(object):
   def src_exists(self, move):
     color = self.get_color(move.color)
     posns = color.posns
-    if move.source_cpos in posns:
+    if move.src_cpos in posns:
         return True
     else:
         return False
@@ -314,16 +337,15 @@ class Board(object):
     color = self.get_color(move.color)
     posns = color.posns
     if max(dice.values) not in posns \
-    and move.source_cpos == color.farthest() or self.query(Query(color, HOME)) == 15:
+    and move.src_cpos == color.farthest() or self.query(Query(color, HOME)) == 15:
       return True
     else:
       return False
 
-
   # checks if the given move is valid given the dice
-  @contract(move='$Move', dice='$Dice', returns='bool')
+  @contract(move='$Move', dice='$Dice', die='int', returns='bool')
   # Have variable to determine direction of travel, then multiply by dice value (get rid of add/sub)
-  def is_valid_move(self, move, dice):
+  def is_valid_move(self, move, dice, die):
     player = move.color
     if not player.correct_dir(move): return False
 
@@ -331,107 +353,60 @@ class Board(object):
     query = Query(opponent, move.dest_cpos)
     num_opponents = self.query(query) if move.dest_cpos != HOME else 0
     dist = move.get_distance()
-
+    
     # if the player is trying to go home but cannot bear off, the move is invalid
     if move.dest_cpos == HOME and not self.can_bear_off(player): return False
-    
-    if dist in dice.combos() and num_opponents <= 1:
-      return True
+    if move.dest_cpos == HOME and self._bear_off(move, dice): return True
     # Handle case where value of dice exceeds furthest checker that can bear off
-    elif move.dest_cpos == HOME and self._bear_off(move, dice):
+    elif dist == die and num_opponents <= 1:
       return True
     else:
       return False
+  
+  @contract(color='$Color', dice='$Dice', turn='ValidateTurn')
+  def play_move(self, color, dice, turn):
+    color = self.get_color(color)
+    all_turns = list(self.get_possible_turns(color, dice))
+    valid_turns = self._uses_all_dice(all_turns)
 
-  @contract(color='$Color', dice='$Dice', turn='ValidateTurn', returns='bool|*')
-  def play_move(self, color, dice, turn, failed_turns=0):
-    if not turn: valid_moves = self.get_possible_moves(color, dice)
-    for move in turn:
-      color = self.get_color(color)
-      posns = color.posns
-      last_move = move
-      occupants_next_die = self.color_check(move.dest_cpos)
-      valid_moves = self.get_possible_moves(color, dice)
-      
-      # If there is no checker at src, then the move is invalid
-      if self.src_exists(move) and move.as_list in valid_moves:
-        valid_moves.remove(move.as_list)
-        # If a player has checkers on the bar, that takes first priority
-        if (BAR in posns and move.source_cpos == BAR) or (BAR not in posns):
-          if self._play_move_helper(move, color, dice, occupants_next_die): continue
-        else:
-          return False
-      else:
-        return False
-    
-    # If there are valid moves, but no turn, then the turn is invalid
-    if valid_moves and not turn:
+    if turn and not valid_turns:
       return False
-    # If there are valid moves and dice left over, check to see if more dice could have been used
-    elif valid_moves and dice.values and self._can_use_more_dice(last_move, valid_moves, dice) and failed_turns < FAIL_CAP:
-      return False
-    else:
+    elif not turn and not valid_turns:
       return self
-
-  @contract(last_move='$Move', valid_moves='list(list[2](int|str))', dice='$Dice', returns='bool')
-  def _can_use_more_dice(self, last_move, valid_moves, dice):
-    color = last_move.color
-    for val in dice.values:
-      for move in valid_moves:
-        move_dest = move[1]
-        # where we end up if we use the last die
-        destination_next_die = color.get_destination(last_move.dest_cpos, val)
-        # where we end up if we used the other dice values first
-        destination_valid_move = color.get_destination(move_dest, max(dice.original_combos)-val)
-        # if opponents_next_die > 1 and opponents_valid_move > 1: continue
-        # if we end up in the same place, then we have no better move
-        # or, if we end up at home with dice left over, then we could have used those dice before bearing off
-        if ((destination_valid_move == HOME or destination_next_die == HOME) \
-        and self.can_bear_off(color) and self._bear_off(Move(color, move[0], move[1]), dice)) or (destination_next_die != destination_valid_move != HOME): 
-          return True
-    return False
-
-  @contract(move='$Move', color='$Color', dice='$Dice', occupants='$Color|None')
-  def _play_move_helper(self, move, color, dice, occupants):
-    dst = move.dest_cpos
-    distance = move.get_distance()
-    if occupants == None or occupants.name() == color.name() or dst == HOME:
-      self.make_move(move)
-    # If your opponent only has one checker at the dst position, then the move is a 'bop'. 
-    # Your piece takes the position and their piece is sent to the bar.
-    elif self.is_bop(move):
-      self.make_move(move)
-      self.bop(occupants, dst)
+    elif turn in valid_turns:
+      get_moves_from_turn(turn, color)
+      moves = create_moves(turn)
+      self.make_moves(moves)
+      return self
     else:
       return False
-    if distance in dice.values: dice.values.remove(distance)
-    else: dice.values.remove(max(dice.values))
-    return True
-
+      
+  def _uses_all_dice(self, all_turns):
+    if all_turns:
+      max_length = len(max(all_turns, key=len))
+      return list(filter(lambda x: len(x) == max_length, all_turns))
+    
   # Checks if there are any remaining legal moves left given that there are still dice remaining to use
-  @contract(color='$Color', dice='$Dice', returns='list(list[2](int|str))')
-  def get_possible_moves(self, color, dice):
-    posns = color.posns
-    valid_moves = []
-    for die in dice.values:
-      potential_moves = []
-      for posn in posns:
-        if posn == HOME: continue # if the checker is already home, the we can skip
-        dest = color.get_destination(posn, die)
-        if posn == BAR: # if the checker is on the bar, we only check those
-          potential_moves.append([posn, dest])
-          break 
-        # Verify the destination is a valid CPos 
-        if CPos(dest): 
-          potential_moves.append([posn, dest])
-      # Generate moves from the potential turn
-      get_moves_from_turn(potential_moves, color)
-      moves = create_moves(potential_moves)
-      # Check if the moves are valid
-      for move in moves:
-        if self.is_valid_move(move, dice) and move.as_list not in valid_moves:
-          valid_moves.append(move.as_list)
-    return valid_moves
+  @contract(color='$Color', dice='$Dice')
+  def get_possible_turns(self, color, dice, valid_turn=[]):
+    color = self.get_color(color)
+    unique_posns = list(Counter(color.posns).keys())
+    unique_dice = list(Counter(dice.values).keys())
+    if BAR in unique_posns: unique_posns = [BAR] 
+    if valid_turn: yield valid_turn
+    for src in unique_posns:
+      for die in unique_dice:
+        if src == HOME: continue # if the checker is already home, the we can skip
+        dest = color.get_destination(src, die)
+        move = Move(color, src, dest)
+        if self.is_valid_move(move, dice, die):
+          new_valid_turn = valid_turn + [[src, dest]]
+          dice.values.remove(die)
+          self.make_move(move)
+          yield from self.get_possible_turns(color, dice, new_valid_turn)
+          dice.values.append(die)
+          self.undo(move)
+        else: continue
 # ============================================================================
 class Player(object):
   def __init__(self, name):
@@ -449,50 +424,14 @@ class Player(object):
     if not self.started: self.started = True
     else: raise RuntimeError('start_game was called twice before end_game')
     self.opponent = opponent_name
-    return OKAY
   
-  @contract(board='$Board', dice='$Dice', returns='list(list[2](int|str))|bool')
+  @contract(board='$Board', dice='$Dice')
   def turn(self, board, dice):
-    board_copy = deepcopy(board)
-    dice_copy = deepcopy(dice)
-    board_reset = deepcopy(board)
-    dice_reset = deepcopy(dice)
-    fails = 0
-    self.color = board_copy.get_color(self.color)
-    while True:
-      try:
-        random_turn = self._try_moves(board_copy, dice_copy)
-        assert board.play_move(self.color, dice, random_turn, fails)
-        return [move.as_list for move in random_turn] 
-      except AssertionError:
-        # reset the board if the turn is not valid and try again
-        self.has_failed = True
-        fails += 1
-        board = deepcopy(board_reset) 
-        board_copy = deepcopy(board_reset)
-        dice = deepcopy(dice_reset)
-        dice_copy = deepcopy(dice_reset)
-        self.color = board_copy.get_color(self.color)
-        continue
-
-  @contract(board='$Board', dice='$Dice')
-  def _generate_valid_moves(self, board, dice):
-    valid_moves = board.get_possible_moves(self.color, dice)
-    get_moves_from_turn(valid_moves, self.color)
-    valid_moves = create_moves(valid_moves)
-    return valid_moves
-
-  @contract(board='$Board', dice='$Dice')
-  def _try_moves(self, board, dice):
-    turn = []
-    while dice.values:
-      valid_moves = self._generate_valid_moves(board, dice)
-      if valid_moves:
-        move = self._get_move(valid_moves, board, dice)
-        turn.append(move)
-        board.make_move(move)
-      else: break
-    return turn
+    all_turns = list(board.get_possible_turns(self.color, dice))
+    valid_turns = board._uses_all_dice(all_turns)
+    turn = self.get_turn(board, valid_turns)
+    original_turn = turn.copy()
+    board.play_move(self.color, dice, turn)
 
   def is_winner(self, board):
     color = board.get_color(self.color)
@@ -505,21 +444,15 @@ class Player(object):
     self.has_won = has_won
     self.final_board = board
   
-
 class RandomPlayer(Player):
   def __init__(self, name):
     super().__init__(name)
     self.color
     self.opponent
-  
-  @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
-  def _get_move(self, valid_moves, board, dice):
-    random_move = random.choice(valid_moves)
-    distance = random_move.get_distance()
-    if distance in dice.values:
-      dice.values.remove(distance)
-    else: dice.values.remove(max(dice.values))
-    return random_move
+
+  def get_turn(self, board, valid_turns):
+    if valid_turns: return random.choice(valid_turns)
+    else: return []
 
 class BopPlayer(Player):
   def __init__(self, name):
@@ -527,35 +460,35 @@ class BopPlayer(Player):
     self.color
     self.opponent
 
-  @contract(valid_moves='list($Move)', board='$Board', dice='$Dice')
-  def _get_move(self, valid_moves, board, dice):
-    moves_distances = {move: move.get_distance() for move in valid_moves}
-    result = None
-    for move in valid_moves:
-      if board.is_bop(move) and not self.has_failed:
-        result = move
-    if not result:
-      result = max(moves_distances, key=moves_distances.get)
-      if list(moves_distances.values()).count(moves_distances[result]) == len(moves_distances) \
-      or result.dest_cpos == HOME \
-      or self.has_failed : result = random.choice(valid_moves)
-    distance = moves_distances[result]
-    if distance in dice.values:
-      dice.values.remove(distance)
-    else: dice.values.remove(max(dice.values))
-    return result
+  #TODO: Change to use all generated boards
+  def get_turn(self, board, valid_turns):
+    max_score = 0
+    max_index = 0
+    if valid_turns:
+      if len(valid_turns) < 1000:
+        for turn in valid_turns:
+          for move in turn:
+            curr_move = Move(self.color, move[0], move[1])
+            if board.is_bop(curr_move):
+              score = self.color.get_dist_from_home(curr_move.src_cpos) - board._get_opponent(self.color).get_dist_from_home(curr_move.dest_cpos)
+              if score > max_score:
+                max_score = 0
+                max_index = valid_turns.index(turn)
+        return valid_turns[max_index]
+      else: return random.choice(valid_turns)
+    else: return []
 
 class RemotePlayer(Player):
   def __init__(self, client):
     self.client = client
     try:
       msg = json.dumps('name')
-      self.client.sendall(msg.encode() + '\n'.encode())
-      data = json.loads(client.recv(2048).decode())
+      self.client.send(msg.encode() + '\n'.encode())
+      data = json.loads(client.recv(1024).decode())
       check('ValidateNameData', data)
       name = data[NAME]
     except ContractNotRespected:
-      client.close()
+      self.client.close()
 
     super().__init__(name)
     self.color = None
@@ -563,12 +496,13 @@ class RemotePlayer(Player):
     
   @contract(color='str', opponent_name='str')
   def start_game(self, color, opponent_name):
+    if not self.started: self.started = True
+    else: raise RuntimeError('start_game was called twice before end_game')
     self.client.send(json.dumps({START: [color, opponent_name]}).encode() + '\n'.encode())
     msg = json.loads(self.client.recv(1024).decode())
     if msg == OKAY: return
     else: 
-      self.cheater = True
-      self.client.close()
+      self.cheater()
       return
 
   @contract(board='$Board', dice='$Dice')
@@ -578,27 +512,29 @@ class RemotePlayer(Player):
       data = json.loads(self.client.recv(1024).decode())
       check('ValidateTurnData', data)
       turn = data[TURN]
-      get_moves_from_turn(turn, self.color)
-      turn = create_moves(turn)
       if board.play_move(self.color, dice, turn):
         pass
       else:
-        self.is_cheater = True
-        self.client.close()
+        self.cheater()
+        return
          # ! if a player cheats, admin shuts down game and returns cheater (so tournament manager can edit bracket)
     except ContractNotRespected or ContractException:
-        self.is_cheater = True
-        self.client.close()
+        self.cheater()
+        return
 
   @contract(board='$Board', has_won='bool')
   def end_game(self, board, has_won):
+    self.started = False
     self.client.send(json.dumps({END: [board.as_dict(), has_won]}).encode() + '\n'.encode())
     msg = json.loads(self.client.recv(1024).decode())
     if msg == OKAY: return
     else: 
-      self.cheater = True
-      self.client.close()
+      self.cheater()
       return
+  
+  def cheater(self):
+    self.is_cheater = True
+    self.client.close()
     
      
     
