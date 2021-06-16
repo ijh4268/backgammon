@@ -40,7 +40,11 @@ class BackgammonAdmin(object):
       self.player1.color = bg.Black()
       self.player2.color = bg.White()
       #send start-game object
-      if not self.player1.is_cheater and not self.player2.is_cheater:
+      if self.player1.is_cheater: 
+        self.player2.start_game(self.player2.color.name(), self.player1.name)
+      elif self.player2.is_cheater:
+        self.player1.start_game(self.player1.color.name(), self.player2.name)
+      else:
         self.player1.start_game(self.player1.color.name(), self.player2.name)
         self.player2.start_game(self.player2.color.name(), self.player1.name)
 
