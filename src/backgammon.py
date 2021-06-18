@@ -516,6 +516,9 @@ class Player(object):
         else:
             raise RuntimeError('start_game was called twice before end_game')
         self.opponent = opponent_name
+        if color == BLACK: self.color = Black()
+        elif color == WHITE: self.color = White()
+        else: raise ContractException
 
     @contract(board='$Board', dice='$Dice')
     def turn(self, board, dice):

@@ -5,9 +5,10 @@ import socket, json, sys
 
 # Take the JSON object 'network-config' and extract the "host" (string, goes to TCP_IP) and the "port" (number,
 # goes to TCP_PORT)
+network_config = json.loads(sys.stdin.readline())
 
-host = 'localhost'
-port = 9876
+host = network_config[HOST]
+port = network_config[PORT]
 
 
 def initialize_network(port, host):
@@ -33,7 +34,7 @@ def handle_start_game(server, data, player):
     opponent = start_game[1]
     try:
         player.start_game(color, opponent)
-        assert player.color == color
+        assert player.color.name() == color
         assert player.opponent == opponent
         server.send(json.dumps('okay').encode() + '\n'.encode())
     except AssertionError as e:
@@ -43,7 +44,7 @@ def handle_start_game(server, data, player):
 def handle_turn(server, data, player):
     turn = data[TAKE_TURN]
     board = get_board(turn[0])
-    player.color = get_color(player.color, board)
+    # player.color = get_color(player.color, board)
     dice = get_dice(turn[1])
     result = player.turn(board, dice)
     server.send(json.dumps({TURN: result}).encode() + '\n'.encode())
