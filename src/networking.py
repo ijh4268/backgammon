@@ -5,10 +5,9 @@ import socket, json, sys
 
 # Take the JSON object 'network-config' and extract the "host" (string, goes to TCP_IP) and the "port" (number,
 # goes to TCP_PORT)
-network_config = json.loads(sys.stdin.readline())
 
-host = network_config[HOST]
-port = network_config[PORT]
+host = 'localhost'
+port = 9876
 
 
 def initialize_network(port, host):
@@ -22,7 +21,7 @@ s = initialize_network(port, host)
 
 
 def handle_name(server, data):
-    player = bg.BopPlayer(data)
+    player = bg.AIPlayer(data)
     player_name_json = json.dumps({NAME: player.name})
     server.send(player_name_json.encode() + '\n'.encode())
     return player
