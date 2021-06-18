@@ -20,7 +20,7 @@ class BackgammonAdmin(object):
 
   def cheater_check(self):
     if self.player1.is_cheater and self.player2.is_cheater:
-      self.cheaters = [self.player1, self.player2]
+      self.cheaters = -1
     elif self.player1.is_cheater:
       self.cheaters = [self.player1]
     elif self.player2.is_cheater:
@@ -87,9 +87,10 @@ class BackgammonAdmin(object):
 
     self.cheater_check()
 
-    if len(self.cheaters) > 1:
+    if self.cheaters == -1:
       p1_has_won = False
       p2_has_won = False
+      self.cheaters = [self.player1, self.player2]
       
     if p1_has_won:
       self.winner = self.player1
