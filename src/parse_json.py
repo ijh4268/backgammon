@@ -3,11 +3,12 @@ import json
 import re
 
 data = []
-n = 10 
+n = 10
 valid_nums = range(1, 25)
 special_feature = 'content'
 
 NOT_WHITESPACE = re.compile(r'[^\s]')
+
 
 def decode_stacked(document, pos=0, decoder=json.JSONDecoder()):
     while True:
@@ -15,17 +16,19 @@ def decode_stacked(document, pos=0, decoder=json.JSONDecoder()):
         if not match:
             return
         pos = match.start()
-        
+
         try:
             obj, pos = decoder.raw_decode(document, pos)
         except json.JSONDecodeError:
             pass
         yield obj
 
+
 def chunkify(lst, n):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
+
 
 def parse_json():
     s = sys.stdin.read()

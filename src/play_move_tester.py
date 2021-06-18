@@ -1,10 +1,11 @@
-from constants import *
-from contracts import ContractNotRespected
-from backgammon import Board
-from parse_json import parse_json
-from parse_data import get_board, get_color, get_dice
+import json
+import sys
 
-import sys, json
+from contracts import ContractNotRespected
+
+from backgammon import Board
+from parse_data import get_board, get_color, get_dice
+from parse_json import parse_json
 
 try:
     data = parse_json()[0]

@@ -1,7 +1,8 @@
-import backgammon as bg
+import json
+import sys
+
 from parse_data import *
 from parse_json import parse_json
-import sys, json
 
 data = parse_json()[0]
 
@@ -13,8 +14,8 @@ random_player = bg.RandomPlayer('random')
 random_player.color = color
 
 turn = random_player.turn(board, dice)
-if turn == False: 
-  print('Failed!')
+if not turn:
+    print('Failed!')
 
 turn = json.dumps(turn)
 
