@@ -4,7 +4,6 @@ import random
 import uuid
 from abc import ABCMeta, abstractmethod
 from collections import Counter
-from itertools import islice
 
 from contracts import contract, new_contract, check
 from contracts.interface import ContractNotRespected, ContractException
@@ -63,6 +62,9 @@ def ValidateTurnData(data):
     return type(data) == dict and TURN in data.keys() and ValidateTurns(data[TURN])
 
 
+@new_contract
+def ValidateNameData(data):
+    return type(data) == dict and NAME in data.keys() and type(data[NAME]) == str and data[NAME].find('Filler') == -1
 # ----------------------------- Backgammon Classes ----------------------------
 # ============================================================================
 class Color(metaclass=ABCMeta):
@@ -645,7 +647,8 @@ class RemotePlayer(Player):
             check('ValidateNameData', data)
             name = data[NAME]
         except ContractNotRespected:
-            self.client.close()
+            self.cheater()
+            return
 
         super().__init__(name)
         self.color = None

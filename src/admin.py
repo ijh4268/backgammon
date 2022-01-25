@@ -8,10 +8,11 @@ from constants import *
 #   return isinstance(player, bg.Player)
 
 class BackgammonAdmin(object):
-  def __init__(self, player1=None, player2=None):
+  def __init__(self, player1=None, player2=None, testing=False):
     self.winner = None
     self.loser = None
     self.cheaters = None
+    self.testing = testing
     self.board = bg.Board()
     self.dice = bg.Dice()
     self.player1 = player1
@@ -23,8 +24,12 @@ class BackgammonAdmin(object):
       self.cheaters = -1
     elif self.player1.is_cheater:
       self.cheaters = [self.player1]
+      if isinstance(self.player1, bg.RemotePlayer) and self.testing:
+        self.player1 = bg.RandomPlayer(MAL)
     elif self.player2.is_cheater:
       self.cheaters = [self.player2]
+      if isinstance(self.player2, bg.RemotePlayer) and self.testing:
+        self.player2 = bg.RandomPlayer(MAL)
     else: return 
 
   def check_fillers(self):
